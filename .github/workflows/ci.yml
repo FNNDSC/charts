@@ -1,0 +1,33 @@
+name: ci
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: Git checkout
+      uses: actions/checkout@v3
+    - name: Start Kubernetes
+      run: kind create cluster --config=testing/kind-with-nodeport.yml
+    - name: Install chris-cube
+      run: |
+        helm install --create-namespace --namespace ghactions khris-test \
+          -f testing/ghactions-values.yml --set nodePortHost=$(hostname) .
+
+    - name: Wait for migrations to complete
+      run: ./testing/wait_for_migration.sh
+
+    - name: Connectivity test
+      run: Helm test
+    # - name: User test
+      # run: ...
+
+    - name: Uninstall chart
+      run: helm uninstall khris-test
+    - name: Delete cluster
+      run: kind delete cluster
