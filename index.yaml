@@ -1,0 +1,29 @@
+apiVersion: v1
+entries:
+  chris-cube:
+  - apiVersion: v2
+    appVersion: 4.0.0.pre12
+    created: "2023-06-30T10:39:34.426554404Z"
+    description: CUBE is an open-source platform backend for medical compute.
+    digest: ea47d6d9fe8c3b7465a72c1b04a1548816f5887a3e50b9189720c1600990c617
+    home: https://chrisproject.org
+    icon: ./logo_chris.png
+    keywords:
+    - medicine
+    - science
+    - bioinformatics
+    - neuroscience
+    - scientific workflow system
+    maintainers:
+    - email: dev@babyMRI.org
+      name: The FNNDSC Dev Team
+      url: https://fnndsc.org
+    name: chris-cube
+    sources:
+    - https://github.com/FNNDSC/khris-helm
+    - https://github.com/FNNDSC/ChRIS_ultron_backEnd
+    type: application
+    urls:
+    - https://github.com/FNNDSC/khris-helm/releases/download/chris-cube-1.0.0/chris-cube-1.0.0.tgz
+    version: 1.0.0
+generated: "2023-06-30T10:39:34.426559104Z"
