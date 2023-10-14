@@ -3,6 +3,38 @@ entries:
   chris:
   - apiVersion: v2
     appVersion: 5.0.0
+    created: "2023-10-14T21:48:54.435326848Z"
+    dependencies:
+    - name: postgresql
+      repository: oci://registry-1.docker.io/bitnamicharts
+      version: 13.0.0
+    - name: rabbitmq
+      repository: oci://registry-1.docker.io/bitnamicharts
+      version: 12.1.7
+    description: ChRIS is an open-source platform backend for medical compute.
+    digest: 535f8d86943ad2f87c9bfa607b731738f563d5f475a02dfc6236e84dec570c4e
+    home: https://chrisproject.org
+    icon: ./logo_chris.png
+    keywords:
+    - medicine
+    - science
+    - bioinformatics
+    - neuroscience
+    - scientific workflow system
+    maintainers:
+    - email: dev@babyMRI.org
+      name: The FNNDSC Dev Team
+      url: https://fnndsc.org
+    name: chris
+    sources:
+    - https://github.com/FNNDSC/charts
+    - https://github.com/FNNDSC/ChRIS_ultron_backEnd
+    type: application
+    urls:
+    - https://github.com/FNNDSC/charts/releases/download/chris-0.0.8/chris-0.0.8.tgz
+    version: 0.0.8
+  - apiVersion: v2
+    appVersion: 5.0.0
     created: "2023-10-14T18:28:58.325097302Z"
     dependencies:
     - name: postgresql
@@ -266,4 +298,22 @@ entries:
     urls:
     - https://github.com/FNNDSC/khris-helm/releases/download/chris-cube-1.0.0/chris-cube-1.0.0.tgz
     version: 1.0.0
-generated: "2023-10-14T18:28:58.325141602Z"
+  pfcon:
+  - apiVersion: v2
+    appVersion: 5.2.2
+    created: "2023-10-14T21:48:54.545932623Z"
+    description: API for a ChRIS remote compute resource
+    digest: 6159be3e17057b729d82aa45fa8cdd89bc78591cb8b32c96f1ee7f2861b0833f
+    maintainers:
+    - email: dev@babyMRI.org
+      name: The FNNDSC Dev Team
+      url: https://fnndsc.org
+    name: pfcon
+    sources:
+    - https://github.com/FNNDSC/charts
+    - https://github.com/FNNDSC/pfcon
+    type: application
+    urls:
+    - https://github.com/FNNDSC/charts/releases/download/pfcon-0.0.1/pfcon-0.0.1.tgz
+    version: 0.0.1
+generated: "2023-10-14T21:48:54.546141625Z"
