@@ -3,6 +3,42 @@ entries:
   chris:
   - apiVersion: v2
     appVersion: 5.0.0
+    created: "2023-10-17T17:17:00.318960031Z"
+    dependencies:
+    - name: postgresql
+      repository: oci://registry-1.docker.io/bitnamicharts
+      version: ~13.0.0
+    - name: rabbitmq
+      repository: oci://registry-1.docker.io/bitnamicharts
+      version: ~12.1.7
+    - condition: pfcon.enabled
+      name: pfcon
+      repository: https://fnndsc.github.io/charts
+      version: '>= 0.0.2, < 0.1.0'
+    description: ChRIS is an open-source platform backend for medical compute.
+    digest: 3a5e04ad766e6d40c47f05d9ca7ff38a729bb6a8eab563624f4c4e4f14f79d34
+    home: https://chrisproject.org
+    icon: ./logo_chris.png
+    keywords:
+    - medicine
+    - science
+    - bioinformatics
+    - neuroscience
+    - scientific workflow system
+    maintainers:
+    - email: dev@babyMRI.org
+      name: The FNNDSC Dev Team
+      url: https://fnndsc.org
+    name: chris
+    sources:
+    - https://github.com/FNNDSC/charts
+    - https://github.com/FNNDSC/ChRIS_ultron_backEnd
+    type: application
+    urls:
+    - https://github.com/FNNDSC/charts/releases/download/chris-0.1.0-rc.1/chris-0.1.0-rc.1.tgz
+    version: 0.1.0-rc.1
+  - apiVersion: v2
+    appVersion: 5.0.0
     created: "2023-10-14T21:48:54.435326848Z"
     dependencies:
     - name: postgresql
@@ -301,6 +337,23 @@ entries:
   pfcon:
   - apiVersion: v2
     appVersion: 5.2.2
+    created: "2023-10-17T17:17:00.451923206Z"
+    description: API for a ChRIS remote compute resource
+    digest: 8e1c5a5f99a50c3ceb376ef35dd1eb47ce1530aec58aebe5ad50dd2cee67e952
+    maintainers:
+    - email: dev@babyMRI.org
+      name: The FNNDSC Dev Team
+      url: https://fnndsc.org
+    name: pfcon
+    sources:
+    - https://github.com/FNNDSC/charts
+    - https://github.com/FNNDSC/pfcon
+    type: application
+    urls:
+    - https://github.com/FNNDSC/charts/releases/download/pfcon-0.1.0-rc.1/pfcon-0.1.0-rc.1.tgz
+    version: 0.1.0-rc.1
+  - apiVersion: v2
+    appVersion: 5.2.2
     created: "2023-10-14T22:28:38.495508087Z"
     description: API for a ChRIS remote compute resource
     digest: d3663053ce68b1d7e2e05030f19ab6c991e10553bc5a68c4a3e78b4508aa1ec7
@@ -333,4 +386,4 @@ entries:
     urls:
     - https://github.com/FNNDSC/charts/releases/download/pfcon-0.0.1/pfcon-0.0.1.tgz
     version: 0.0.1
-generated: "2023-10-14T22:28:38.495532288Z"
+generated: "2023-10-17T17:17:00.451965006Z"
