@@ -3,6 +3,42 @@ entries:
   chris:
   - apiVersion: v2
     appVersion: 5.0.0
+    created: "2023-10-18T03:14:16.106132636Z"
+    dependencies:
+    - name: postgresql
+      repository: oci://registry-1.docker.io/bitnamicharts
+      version: ~13.0.0
+    - name: rabbitmq
+      repository: oci://registry-1.docker.io/bitnamicharts
+      version: ~12.1.7
+    - condition: pfcon.enabled
+      name: pfcon
+      repository: https://fnndsc.github.io/charts
+      version: 0.1.0-rc.1
+    description: ChRIS is an open-source platform backend for medical compute.
+    digest: 4f26c621bd7a3c12cc04e398b8f37941ae78aa33dc10e14413a0e4cf2b6fb4fc
+    home: https://chrisproject.org
+    icon: ./logo_chris.png
+    keywords:
+    - medicine
+    - science
+    - bioinformatics
+    - neuroscience
+    - scientific workflow system
+    maintainers:
+    - email: dev@babyMRI.org
+      name: The FNNDSC Dev Team
+      url: https://fnndsc.org
+    name: chris
+    sources:
+    - https://github.com/FNNDSC/charts
+    - https://github.com/FNNDSC/ChRIS_ultron_backEnd
+    type: application
+    urls:
+    - https://github.com/FNNDSC/charts/releases/download/chris-0.1.0-rc.2/chris-0.1.0-rc.2.tgz
+    version: 0.1.0-rc.2
+  - apiVersion: v2
+    appVersion: 5.0.0
     created: "2023-10-17T17:17:00.318960031Z"
     dependencies:
     - name: postgresql
@@ -310,4 +346,4 @@ entries:
     urls:
     - https://github.com/FNNDSC/charts/releases/download/pfcon-0.0.1/pfcon-0.0.1.tgz
     version: 0.0.1
-generated: "2023-10-17T17:17:00.451965006Z"
+generated: "2023-10-18T03:14:16.106334337Z"
