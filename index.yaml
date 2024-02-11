@@ -706,6 +706,28 @@ entries:
     urls:
     - https://github.com/FNNDSC/charts/releases/download/chris-0.0.1/chris-0.0.1.tgz
     version: 0.0.1
+  ohif:
+  - apiVersion: v2
+    appVersion: 3.7.0
+    created: "2024-02-11T22:17:21.955978501Z"
+    description: The Open Health Imaging Foundation Viewer
+    digest: ed941fdb2f9f72e3dc821b1147d91afb0902716df47b355652d8e86d06a22253
+    icon: ./logo-ohif-small.svg
+    keywords:
+    - medicine
+    - DICOM
+    maintainers:
+    - email: dev@babyMRI.org
+      name: The FNNDSC Dev Team
+      url: https://fnndsc.org
+    name: ohif
+    sources:
+    - https://github.com/FNNDSC/charts
+    - https://github.com/OHIF/Viewers
+    type: application
+    urls:
+    - https://github.com/FNNDSC/charts/releases/download/ohif-0.1.0/ohif-0.1.0.tgz
+    version: 0.1.0
   orthanc:
   - apiVersion: v2
     appVersion: 1.12.3
@@ -901,4 +923,4 @@ entries:
     urls:
     - https://github.com/FNNDSC/charts/releases/download/pfcon-0.0.1/pfcon-0.0.1.tgz
     version: 0.0.1
-generated: "2024-02-11T21:15:19.603780894Z"
+generated: "2024-02-11T22:17:21.956062408Z"
