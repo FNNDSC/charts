@@ -749,6 +749,27 @@ entries:
   ohif:
   - apiVersion: v2
     appVersion: 3.7.0
+    created: "2024-02-11T22:41:40.325617753Z"
+    description: The Open Health Imaging Foundation Viewer
+    digest: 530470b54da4b158648f617fbef900a914b2125712a89a691d1bab1f9eff2fe3
+    icon: ./logo-ohif-small.svg
+    keywords:
+    - medicine
+    - DICOM
+    maintainers:
+    - email: dev@babyMRI.org
+      name: The FNNDSC Dev Team
+      url: https://fnndsc.org
+    name: ohif
+    sources:
+    - https://github.com/FNNDSC/charts
+    - https://github.com/OHIF/Viewers
+    type: application
+    urls:
+    - https://github.com/FNNDSC/charts/releases/download/ohif-0.1.1/ohif-0.1.1.tgz
+    version: 0.1.1
+  - apiVersion: v2
+    appVersion: 3.7.0
     created: "2024-02-11T22:17:21.955978501Z"
     description: The Open Health Imaging Foundation Viewer
     digest: ed941fdb2f9f72e3dc821b1147d91afb0902716df47b355652d8e86d06a22253
@@ -769,6 +790,24 @@ entries:
     - https://github.com/FNNDSC/charts/releases/download/ohif-0.1.0/ohif-0.1.0.tgz
     version: 0.1.0
   orthanc:
+  - apiVersion: v2
+    appVersion: 1.12.3
+    created: "2024-02-11T22:41:40.431372509Z"
+    description: Orthanc PACS server
+    digest: 44747ac13f52017add9fdf512224a444641a0093b61cdca485595be8d1308a40
+    maintainers:
+    - email: dev@babyMRI.org
+      name: The FNNDSC Dev Team
+      url: https://fnndsc.org
+    name: orthanc
+    sources:
+    - https://github.com/FNNDSC/charts
+    - https://github.com/FNNDSC/orthanc-fnndsc
+    - https://hub.docker.com/r/jodogne/orthanc-plugins
+    type: application
+    urls:
+    - https://github.com/FNNDSC/charts/releases/download/orthanc-1.1.1/orthanc-1.1.1.tgz
+    version: 1.1.1
   - apiVersion: v2
     appVersion: 1.12.3
     created: "2024-02-11T21:15:19.603680998Z"
@@ -963,4 +1002,4 @@ entries:
     urls:
     - https://github.com/FNNDSC/charts/releases/download/pfcon-0.0.1/pfcon-0.0.1.tgz
     version: 0.0.1
-generated: "2024-02-11T22:21:36.978224167Z"
+generated: "2024-02-11T22:41:40.431491568Z"
