@@ -1106,6 +1106,23 @@ entries:
     urls:
     - https://github.com/FNNDSC/charts/releases/download/chris-0.0.1/chris-0.0.1.tgz
     version: 0.0.1
+  linkerd-nodeport-workaround:
+  - apiVersion: v2
+    appVersion: 2.9.7
+    created: "2024-04-12T23:01:03.658581934Z"
+    description: 'A workaround for creating Linkerd ServiceProfile for a NodePort
+      service. Haproxy is deployed in front of the service you want to instrument,
+      so that the ServiceProfile can use the service''s cluster internal FQDN. '
+    digest: 246bed632a87f59cd70beabe10be05515d9bd6809054d643abe9b92a90a1b8d0
+    maintainers:
+    - email: dev@babyMRI.org
+      name: The FNNDSC Dev Team
+      url: https://fnndsc.org
+    name: linkerd-nodeport-workaround
+    type: application
+    urls:
+    - https://github.com/FNNDSC/charts/releases/download/linkerd-nodeport-workaround-0.1.0/linkerd-nodeport-workaround-0.1.0.tgz
+    version: 0.1.0
   ohif:
   - apiVersion: v2
     appVersion: 3.7.0
@@ -1449,4 +1466,4 @@ entries:
     urls:
     - https://github.com/FNNDSC/charts/releases/download/pfcon-0.0.1/pfcon-0.0.1.tgz
     version: 0.0.1
-generated: "2024-04-04T19:37:46.22388661Z"
+generated: "2024-04-12T23:01:03.658705917Z"
