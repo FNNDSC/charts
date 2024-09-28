@@ -11,7 +11,7 @@ metadata:
 spec:
   containers:
     - name: test-pfcon
-      image: docker.io/curlimages/curl:8.4.0
+      image: quay.io/curl/curl:8.10.1
       command: ["curl"]
       args:
         - "-sSf"
@@ -23,7 +23,7 @@ spec:
         - "-H"
         - "Content-Type: application/json"
         - "--data"
-        - '{"pfcon_user": "pfcon", "pfcon_password": "$(PFCON_PASSWORD)"}'
+        - '{"pfcon_user": "$(PFCON_USER)", "pfcon_password": "$(PFCON_PASSWORD)"}'
       envFrom:
         - secretRef:
             name: {{ .Release.Name }}-pfcon

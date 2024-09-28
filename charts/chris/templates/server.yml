@@ -33,12 +33,14 @@ spec:
         {{- include "cube.waitServerReady" . | nindent 8 }}
       containers:
         - name: server
-          command: [ "gunicorn" ]
-          args: ["-b", "0.0.0.0:8000", "config.wsgi:application"]
+          command: ["daphne", "-b", "0.0.0.0", "-p", "8000", "config.asgi:application"]
           {{- include "cube.container" . | nindent 10 }}
           ports:
             - name: http
-              containerPort: 8000
+              containerPort: {{ .Values.cube.server.service.port }}
+              {{- if .Values.cube.server.hostPort }}
+              hostPort: {{ .Values.cube.server.hostPort }}
+              {{- end }}
           resources:
             {{- toYaml .Values.cube.server.resources | nindent 12 }}
           livenessProbe:
@@ -71,7 +73,7 @@ spec:
     - name: http
       protocol: TCP
       port: {{ .Values.cube.server.service.port }}
-      targetPort: 8000
+      targetPort: {{ .Values.cube.server.service.port }}
       {{- if .Values.cube.server.service.nodePort }}
       nodePort: {{ .Values.cube.server.service.nodePort }}
       {{- end }}

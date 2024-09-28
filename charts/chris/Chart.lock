@@ -1,15 +1,18 @@
 dependencies:
 - name: postgresql
   repository: oci://registry-1.docker.io/bitnamicharts
-  version: 13.4.6
+  version: 15.5.36
 - name: rabbitmq
   repository: oci://registry-1.docker.io/bitnamicharts
-  version: 12.5.7
+  version: 15.0.1
+- name: nats
+  repository: oci://registry-1.docker.io/bitnamicharts
+  version: 8.4.3
 - name: pfcon
   repository: https://fnndsc.github.io/charts
   version: 0.2.2
 - name: orthanc
   repository: https://fnndsc.github.io/charts
   version: 1.2.1
-digest: sha256:73790836be68258a9906a59e91dc88c0cc21e457d16099326c31a7650b464a85
-generated: "2024-05-07T00:25:28.370260264-04:00"
+digest: sha256:7611a8703fc97edb52be6661de1aa4e1531970917f7d842d7b052ec3397a184d
+generated: "2024-09-29T21:19:11.004215537-04:00"

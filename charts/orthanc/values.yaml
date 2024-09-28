@@ -13,8 +13,11 @@ imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
-global: {}
-  # storageClass:
+global:
+  # -- global storageClass
+  storageClass:
+  # -- global podSecurityContext
+  podSecurityContext: {}
 
 serviceAccount:
   # Specifies whether a service account should be created
@@ -39,6 +42,11 @@ securityContext: {}
   # readOnlyRootFilesystem: true
   # runAsNonRoot: true
   # runAsUser: 1000
+
+# -- (optional) set hostPort for Orthanc's HTTP port
+hostPort:
+# -- (optional) set hostPort for Orthanc's PACS DIMSE port
+dicomHostPort:
 
 service:
   enabled: true
@@ -105,7 +113,7 @@ config:
   dicomScuTimeout: 10
 
   # Whether or not the password protection is enabled
-  AuthenticationEnabled: true
+  authenticationEnabled: true
 
   # The list of the registered users. Because Orthanc uses HTTP
   # Basic Authentication, the passwords are stored as plain text.
@@ -127,7 +135,7 @@ config:
   # set to "true", the metrics can be retrieved at
   # "/tools/metrics-prometheus" formetted using the Prometheus
   # text-based exposition format.
-  metricsEnabled: true
+  metricsEnabled: false
 
 ohif:
   enabled: true

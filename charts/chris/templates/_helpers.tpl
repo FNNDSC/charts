@@ -57,6 +57,13 @@ Create the name of the service account to use
 {{- end }}
 {{- end }}
 
+{{- define "chris.nats.address" -}}
+{{- if .Values.nats.auth.enabled -}}
+{{- fail "ChRIS does not work with NATS auth, please set .Values.nats.auth.enabled=false" -}}
+{{- end -}}
+nats://{{ include "common.names.fullname" .Subcharts.nats }}:{{ .Values.nats.service.ports.client | default 4222 }}
+{{- end -}}
+
 {{/*
 CUBE file storage
 --------------------------------------------------------------------------------
@@ -106,8 +113,11 @@ CUBE container common properties
 --------------------------------------------------------------------------------
 */}}
 
+{{- define "cube.image" -}}
+{{ .Values.cube.image.repository }}:{{ .Values.cube.image.tag | default .Chart.AppVersion }}
+{{- end -}}
 {{- define "cube.container" -}}
-image: "{{ .Values.cube.image.repository }}:{{ .Values.cube.image.tag | default .Chart.AppVersion }}"
+image: {{ include "cube.image" . }}
 imagePullPolicy: {{ .Values.cube.image.pullPolicy }}
 volumeMounts:
   - mountPath: /data
@@ -118,7 +128,7 @@ envFrom:
   - configMapRef:
       name: {{ .Release.Name }}-db-config
   - secretRef:
-      name: {{ .Release.Name }}-cube-secrets
+      name: {{ .Release.Name }}-chris-backend
 
 env:
   - name: POSTGRES_PASSWORD
@@ -126,6 +136,11 @@ env:
       secretKeyRef:
         name: {{ .Release.Name }}-postgresql
         key: password
+  - name: CELERY_BROKER_URL
+    valueFrom:
+      secretKeyRef:
+        name: {{ .Release.Name }}-rabbitmq-svcbind
+        key: uri
 {{/* N.B.: env comes last in this helper, so that more values can be appended to it */}}
 {{- end }}
 
@@ -193,9 +208,33 @@ app.kubernetes.io/component: pfdcm
 app.kubernetes.io/instance: {{ .Release.Name }}
 app.kubernetes.io/version: {{ include "pfdcm.listenerVersion" . | quote }}
 app.kubernetes.io/component: backend
-app.kubernetes.io/part-of: chris
 {{- end }}
 
 {{- define "pfdcm.listenerService" -}}
 {{ .Release.Name }}-oxidicom
+{{- end -}}
+
+{{/*
+Helper function to use a value. If the value is unset, try looking up the previous value
+from a secret. If the secret does not exist, generate a random value with a specified length.
+*/}}
+{{- define "valueOrLookupOrRandom" -}}
+{{- if .value -}}
+  {{- .value | b64enc | quote -}}
+{{- else -}}
+  {{- $length := .length | default 32 -}}
+  {{- $name := .name -}}
+  {{- if (not $name) -}}
+    {{- fail (printf "valueOrLookupOrRandom was not called with required parameter 'name'. Given parameters: %s" (keys .)) -}}
+  {{- end -}}
+  {{- with (lookup "v1" "Secret" .root.Release.Namespace .secret) -}}
+    {{- if (hasKey .data $name) -}}
+      {{- (index .data $name) | quote -}}
+    {{- else -}}
+      {{- randAlphaNum $length | b64enc | quote -}}
+    {{- end -}}
+  {{- else -}}
+    {{- randAlphaNum $length | b64enc | quote -}}
+  {{- end -}}
+{{- end -}}
 {{- end -}}

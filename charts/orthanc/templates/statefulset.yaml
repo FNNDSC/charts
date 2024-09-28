@@ -26,36 +26,35 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ include "orthanc.serviceAccountName" . }}
-      {{- if .Values.podSecurityContext }}
+      {{- with (merge .Values.podSecurityContext .Values.global.podSecurityContext) }}
       securityContext:
-        {{- toYaml .Values.podSecurityContext | nindent 8 }}
-      {{- else if .Values.global.podSecurityContext }}
-      securityContext:
-        {{- toYaml .Values.global.podSecurityContext | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       containers:
         - name: {{ .Chart.Name }}
+          {{- with .Values.securityContext }}
           securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
               protocol: TCP
+              {{- if .Values.hostPort }}
+              hostPort: {{ .Values.hostPort }}
+              {{- end }}
             - name: dicom
               containerPort: {{ .Values.dicomService.port }}
               protocol: TCP
-          # livenessProbe:
-          #   httpGet:
-          #     path: /
-          #     port: http
-          # readinessProbe:
-          #   httpGet:
-          #     path: /
-          #     port: http
+              {{- if .Values.dicomHostPort }}
+              hostPort: {{ .Values.dicomHostPort }}
+              {{- end }}
+          {{- with .Values.resources }}
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           volumeMounts:
             - name: storage
               mountPath: /var/lib/orthanc/storage
@@ -64,7 +63,6 @@ spec:
             - name: config
               readOnly: true
               mountPath: /etc/orthanc
-      
       volumes:
         - name: config
           secret:
@@ -87,12 +85,12 @@ spec:
   - metadata:
       name: storage
     spec:
+      {{- with .Values.persistence.storage.accessModes }}
       accessModes:
-      {{- toYaml .Values.persistence.storage.accessModes | nindent 8 }}
-      {{- if .Values.persistence.storage.storageClass }}
-      storageClassName: {{ .Values.persistence.storage.storageClass }}
-      {{- else if .Values.global.storageClass }}
-      storageClassName: {{ .Values.global.storageClass }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with (.Values.persistence.storage.storageClass | default .Values.global.storageClass) }}
+      storageClassName: {{ . }}
       {{- end }}
       resources:
         requests:
@@ -100,13 +98,14 @@ spec:
   - metadata:
       name: index
     spec:
+      {{- with .Values.persistence.index.accessModes }}
       accessModes:
-      {{- toYaml .Values.persistence.index.accessModes | nindent 8 }}
-      {{- if .Values.persistence.index.storageClass }}
-      storageClassName: {{ .Values.persistence.index.storageClass }}
-      {{- else if .Values.global.storageClass }}
-      storageClassName: {{ .Values.global.storageClass }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with (.Values.persistence.index.storageClass | default .Values.global.storageClass) }}
+      storageClassName: {{ . }}
       {{- end }}
       resources:
         requests:
           storage: {{ .Values.persistence.index.size }}
+

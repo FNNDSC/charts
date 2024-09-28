@@ -14,7 +14,7 @@ spec:
   restartPolicy: Never
   containers:
     - name: create-user-test
-      image: ghcr.io/fnndsc/aiochris:0.4.0
+      image: ghcr.io/fnndsc/aiochris:0.10.0
       command:
         - python
         - -c
@@ -39,6 +39,7 @@ spec:
 
               file = Path('/tmp/data.txt')
               file.write_bytes(data)
+              # TODO FIX ME
               uploaded_file = await chris.upload_file(file, 'helm-test/data.txt')
               logging.info(f'uploaded file {uploaded_file.url}')
 

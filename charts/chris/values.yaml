@@ -24,6 +24,11 @@ global:
   #   runAsUser: 123456
   #   runAsGroup: 789
 
+  # compatibility:
+  #   openshift:
+  #     # optional, adapt security context of Bitnami subcharts for OpenShift compatibility
+  #     adaptSecurityContext: auto
+
 
 # Not used
 serviceAccount:
@@ -62,16 +67,6 @@ route:
     insecureEdgeTerminationPolicy: Redirect
     destinationCACertificate: ''
 
-
-# ChRIS automatic admin account
-#####################
-
-chris_admin:
-  username: khris
-  email: noreply@babymri.org
-  # If no password is set, then a random password is created for you.
-  # password:
-
 # ChRIS Backend
 #####################
 cube:
@@ -108,9 +103,12 @@ cube:
     # AUTH_LDAP_BIND_DN: "cn=admin,dc=fnndsc,dc=org"
     # AUTH_LDAP_USER_SEARCH_ROOT: "dc=fnndsc,dc=org"
 
-  ## Additional secret environment variables for CUBE
-  # secrets:
-  #   AUTH_LDAP_BIND_PASSWORD: "admin1234"
+  # -- Additional secret environment variables for CUBE.
+  # -- Note: if `SECRET_KEY` is unset, its previous value will be looked up,
+  # -- or a random value will be generated for you.
+  secrets: {}
+    # AUTH_LDAP_BIND_PASSWORD: "admin1234"
+    # SECRET_KEY: supersecretkey  # https://docs.djangoproject.com/en/5.1/ref/settings/#secret-key
 
   # Set of default plugins to register with the coupled pfcon (if .pfcon.enabled)
   # Plugins which CUBE is hard-coded to depend on should be listed here.
@@ -132,10 +130,13 @@ cube:
 
   # Resources
   #####################
+
+  # -- Main celery worker configuration.
   workerMains:
-    ## Resources for the main worker.
-    ## It requires a large memory allocation due to an inefficient implementation.
-    ## Recommended value is x4 the size of the largest anticipated plugin instance output directory.
+    # -- Resources for the main worker.
+    # -- If an out-of-network pfcon is configured, memory allocation must be **at least**
+    # -- twice as large as the largest anticipated plugin instance output directory's
+    # -- total size. This is because of an inefficient implementation.
     resources:
       requests:
         memory: 3814Mi
@@ -155,17 +156,23 @@ cube:
         memory: 1Gi
         cpu: 250m
 
+  # -- CUBE ASGI server configuration.
   server:
+    # -- CUBE server pod annotations.
+    podAnnotations: {}
+    # -- Deployment replicas count.
     replicas: 1
+    # -- Service configuration.
     service:
       type: ClusterIP
       port: 8000
-      # nodePort:
-      ## nodePortHost does nothing. It is simply used to print the URL of CUBE in the NOTES
-      # nodePortHost:
-    podAnnotations: {}
-    ## resources for the HTTP server (WSGI).
-    ## Default values should be okay. About 256Mi of memory is needed per idle worker.
+      # -- CUBE server service nodePort
+      nodePort:
+      # -- nodePortHost does nothing. It is simply used to print the URL of CUBE in the NOTES
+      nodePortHost:
+
+    # -- Resources for the HTTP server (ASGI).
+    # -- Default values should be okay. About 256Mi of memory is needed per idle worker.
     resources:
       requests:
         memory: 2Gi
@@ -173,6 +180,9 @@ cube:
       limits:
         memory: 2Gi
         cpu: 1
+
+    # -- CUBE server container hostPort.
+    hostPort:
 
 # Database
 #####################
@@ -186,69 +196,61 @@ postgresql:
     database: "chris"
     username: "chris"
 
-  # Create secret for service binding (Experimental)
-  # Ref: https://servicebinding.io/service-provider/
-  serviceBindings:
-    # required if pfdcm.listener.enabled: true
-    enabled: true
-
   # one of: [standalone, replication]
   # Replication is supported, see upstream README.md for configuration.
   architecture: standalone
 
   primary:
-    # Primary database instance resource requests
-    resources:
-      requests:
-        memory: 1Gi
-        cpu: 1
-      limits:
-        memory: 1Gi
-        cpu: 1
-
+    # -- Set container resources according to one common preset (allowed values:
+    # -- none, nano, micro, small, medium, large, xlarge, 2xlarge). This is ignored
+    # -- if primary.resources is set (primary.resources is recommended for production).
+    # -- see https://github.com/bitnami/charts/blob/973a2792e0bc5967e3180c6d44eebf223b9f1d83/bitnami/common/templates/_resources.tpl#L15-L43
+    resourcesPreset: large
+    # -- Set container requests and limits for different resources like CPU or memory
+    # -- (essential for production workloads)
+    resources: {}
     persistence:
       enabled: true
       size: 8Gi
 
-    # Defer control of security configurations to OpenShift
-    podSecurityContext:
-      enabled: false
-    containerSecurityContext:
-      enabled: false
+  # Defer control of security configurations to OpenShift
   volumePermissions:
     enabled: false
   shmVolume:
     enabled: false
 
+  # -- Create secret for service binding (Experimental)
+  # -- Ref: https://servicebinding.io/service-provider/
+  serviceBindings:
+    enabled: true  # required
+
 # [SUBCHART] RabbitMQ packaged by Bitnami
 # https://github.com/bitnami/charts/tree/main/bitnami/rabbitmq#parameters
 rabbitmq:
-
-  # No reason to change these values.
-  #
-  # Whether or not to set a password for RabbitMQ depends on your threat model.
-  # The RabbitMQ service does not receive ingress traffic, the password appears
-  # here in values.yaml due to limitations of how Helm charts share variables
-  # with subcharts.
-  auth:
-    username: "chris"
-    password: "chris1234"
-
   persistence:
     enabled: true
     size: 1Gi
 
-  # Defer control of security configurations to OpenShift
-  podSecurityContext:
-    enabled: false
-  containerSecurityContext:
-    enabled: false
-  volumePermissions:
+  # -- Create secret for service binding (Experimental)
+  # -- Ref: https://servicebinding.io/service-provider/
+  serviceBindings:
+    enabled: true  # required
+
+# -- Configuration of NATS, a messaging system. In ChRIS, NATS is used for PACS retrieve
+# -- progress messages sent from oxidicom to CUBE.
+# -- Documentation: https://github.com/bitnami/charts/tree/nats/8.4.3/bitnami/nats
+nats:
+  # -- Set container resources according to one common preset (allowed values: none,
+  # -- nano, micro, small, medium, large, xlarge, 2xlarge). This is ignored if
+  # -- resources is set (resources is recommended for production).
+  resourcesPreset: small
+  podLabels:
+    app.kubernetes.io/part-of: chris
+  auth:
+    # -- CUBE does not support NATS authorization
     enabled: false
 
-# pfcon: ChRIS compute resource
-#####################
-
+# -- Configuration of pfcon, the ChRIS compute controller
 pfcon:
   enabled: true
 
@@ -256,6 +258,7 @@ pfcon:
   description: "Kubernetes cluster compute resource"
   replicaCount: 1
   podAnnotations: {}
+  podSecurityContext: {}
 
   service:
     type: ClusterIP
@@ -263,8 +266,8 @@ pfcon:
 
   nodeSelector: {}
 
-  # Storage space for CUBE files should be configured here.
-  # It is recommended to allocate as much space as possible for CUBE files.
+  # -- Storage space for CUBE files should be configured here.
+  # -- It is recommended to allocate as much space as possible for CUBE files.
   storage:
     existingClaim: ""
     size: 100Gi
@@ -280,14 +283,15 @@ pfcon:
         cpu: 500m
         memory: 384Mi
 
-    workers: 4
-    workerTimeout: 3600
-
-    # pfcon configuration
-    # Recommended to keep as-is
+    # -- pfcon configuration
+    # -- Recommended to keep as-is
     config:
       innetwork: true
-      storageEnv: filesystem
+      storageEnv: fslink
+
+    # -- Extra environment variables.
+    extraEnv:
+      GUNICORN_CMD_ARGS: "--workers=4 --timeout=3600"
 
   pman:
     # It is unnecessary to increase pman's resources to above the minimum because
@@ -382,12 +386,14 @@ pfdcm:
   listener:
     image:
       repository: ghcr.io/fnndsc/oxidicom
-      pullPolicy: IfNotPresent
-      tag: "2.0.0"
+      pullPolicy: Always
+      tag: "pr-3"
     podAnnotations: {}
-    # The PACS server must be configured to push to this service.
-    # If using Orthanc, the Helm chart will help you validate your
-    # configuration of Orthanc's modailities to include this service.
+    # -- (optional) hostPort for DICOM listener
+    hostPort:
+    # -- The PACS server must be configured to push to this service.
+    # -- If using Orthanc, the Helm chart will help you validate your
+    # -- configuration of Orthanc's modailities to include this service.
     service:
       enabled: true
       type: ClusterIP
@@ -400,24 +406,19 @@ pfdcm:
     #     value: service.name=oxidicom
     #   - name: OTEL_EXPORTER_OTLP_ENDPOINT
     #     value: http://tempo:4317
-    
-    # Optional configurations of oxidicom.
+
+    # -- Optional configurations of oxidicom.
     config:
-      ## number of DICOM listener threads
-      # listenerThreads: 8
+      # -- number of DICOM listener threads
+      # -- ref: https://chrisproject.org/docs/oxidicom/deployment#performance-tuning
+      listenerThreads: 8
 
-      ## number of Tokio runtime threads
-      ## ref: https://github.com/FNNDSC/oxidicom/tree/v2.0.0?tab=readme-ov-file#performance-tuning
-      # tokioThreads: 8
+      # -- number of Tokio runtime threads
+      # -- ref: https://chrisproject.org/docs/oxidicom/deployment#performance-tuning
+      tokioThreads: 4
 
-      ## size of database connection pool
-      # databasePool: 10
-
-      ## maximum number of PACS files to register per database command
-      # batchSize: 20
-
-      ## verbose logging
-      # verbose: true
+      # -- enable/disable logging and set verbosity of components
+      logging: oxidicom=warn
 
       ## strictPduLength, uncompressedOnly, and maxPduLength are strange DICOM
       ## options which you probably want to leave as their default values.
@@ -427,19 +428,16 @@ pfdcm:
       ## Whether to accept unknown DICOM transfer syntaxes.
       # promiscuous: true
 
-      ## Addresses of the PACS pushing to us. Used for looking up the NumberOfSeriesRelatedInstances.
-      ## Do not specify a value for pacsAddress if you are using only the Orthanc sub-chart.
-      ## Value must be a string in the form `{AET="5.6.7.8:11111", MGH="9.10.11.12:33333"}`
-      # pacsAddress: '{HOSPITAL="pacs:4242"}'
     resources:
       # It's written in Rust!
-      # Memory usage typically stays under 20MiB, unless there is backpressure from slow disk or database write speed.
+      # Memory usage typically stays under 20MiB, unless there is backpressure
+      # from slow disk write speed
       limits:
-        cpu: 1
-        memory: 2Gi
+        cpu: 250m
+        memory: 256Mi
       requests:
-        cpu: 1
-        memory: 2Gi
+        cpu: 250m
+        memory: 256Mi
 
 # PACS server
 orthanc:
@@ -455,13 +453,18 @@ orthanc:
     # readOnlyRootFilesystem: true
     # runAsNonRoot: true
     # runAsUser: 1000
-  # Orthanc HTTP API and web app
+  # -- (optional) set hostPort for Orthanc's HTTP API
+  hostPort:
+  # -- (optional) set hostPort for Orthanc's PACS DIMSE port
+  dicomHostPort:
+
+  # -- Orthanc HTTP API and web app
   service:
     enabled: true
     type: ClusterIP
     port: 8042
     # nodePort:
-  # PACS server
+  # -- PACS server
   dicomService:
     enabled: true
     type: ClusterIP
@@ -519,7 +522,7 @@ orthanc:
     dicomScuTimeout: 10
 
     # Whether or not the password protection is enabled
-    AuthenticationEnabled: true
+    authenticationEnabled: true
 
     # The list of the registered users. Because Orthanc uses HTTP
     # Basic Authentication, the passwords are stored as plain text.
@@ -544,7 +547,7 @@ orthanc:
     # set to "true", the metrics can be retrieved at
     # "/tools/metrics-prometheus" formetted using the Prometheus
     # text-based exposition format.
-    metricsEnabled: true
+    metricsEnabled: false
 
   ohif:
     enabled: true

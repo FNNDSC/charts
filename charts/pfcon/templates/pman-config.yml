@@ -6,11 +6,16 @@ metadata:
   labels:
     {{- include "pfcon.labels" . | nindent 4 }}
 data:
+  {{- if .Values.pman.podman.enabled }}
+  CONTAINER_ENV: docker
+  STORAGE_TYPE: docker_local_volume
+  {{- else }}
   CONTAINER_ENV: kubernetes
   STORAGE_TYPE: kubernetes_pvc
   JOB_NAMESPACE: {{ .Release.Namespace }}
+  {{- end }}
   VOLUME_NAME: {{ include "pfcon.storebase" . }}
-  {{- toYaml .Values.pman.config | nindent 2 }}
+  {{- toYaml .Values.pman.extraEnv | nindent 2 }}
   {{- if .Values.pman.setSecurityContext }}
   {{- if .Values.global.podSecurityContext }}
   CONTAINER_USER: {{ printf "%d:%d" (int64 .Values.global.podSecurityContext.runAsUser) (int64 .Values.global.podSecurityContext.runAsGroup) | quote }}

@@ -44,7 +44,9 @@ pfdcm:
       type: NodePort
       nodePort: 32004
     config:
-      verbose: true
+      listenerTrheads: 32
+      tokioThreads: 4
+      logging: oxidicom=info
       promiscuous: true
     env:
       - name: OTEL_RESOURCE_ATTRIBUTES
@@ -54,10 +56,10 @@ pfdcm:
     resources:
       limits:
         cpu: 500m
-        memory: 2Gi
+        memory: 1Gi
       requests:
         cpu: 500m
-        memory: 2Gi
+        memory: 1Gi
 
 orthanc:
   enabled: true
@@ -67,5 +69,6 @@ orthanc:
   config:
     dicomModalities:
       "ChRIS": [ "ChRIS", "cacao-oxidicom", 11111 ]
+    authenticationEnabled: true
     registeredUsers:
       orthanc: orthanc
