@@ -86,9 +86,6 @@ cube:
   # Configuration
   #####################
   config:
-    # Configuration of the gunicorn WSGI server.
-    # ref: https://docs.gunicorn.org/en/stable/settings.html
-    GUNICORN_CMD_ARGS: "--workers=4 --timeout=3600"
     # smaller values increases responsiveness at the cost of resource usage and possibly concurrency bugs
     CUBE_CELERY_POLL_INTERVAL: "5.0"
     # HTTP server security settings
