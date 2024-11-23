@@ -30,9 +30,9 @@ yes
       - disable "innetwork pfcon" where it previously was
 */ -}}
 {{- if      (and .Release.IsUpgrade (eq "yes" (include "cube.wasUsingOwnVolume" .)) (ne "yes" (include "cube.useOwnVolume" .)))  -}}
-{{- fail "CUBE is currently using its own volume, so you cannot set .pfcon.enabled=true or .pfcon.pfcon.config.innetwork=true now!" -}}
+{{- fail "Cannot set pfcon.enabled=true and/or pfcon.pfcon.config.innetwork=true now because CUBE is using its own PersistentVolumeClaim for storage." -}}
 {{- else if (and .Release.IsUpgrade (ne "yes" (include "cube.wasUsingOwnVolume" .)) (eq "yes" (include "cube.useOwnVolume" .)))  -}}
-{{- fail "CUBE currently depends on pfcon configured in \"innetwork\" mode for its storage, volume, so you cannot set .pfcon.enabled=false or .pfcon.pfcon.config.innetwork=false now!" -}}
+{{- fail "Cannot set pfcon.enabled=false and/or pfcon.pfcon.config.innetwork=false now because CUBE currently depends on pfcon configured in \"innetwork\" mode for storage." -}}
 {{- else if (include "cube.useOwnVolume" .) -}}
 {{- /* will be created by ./storage.yml */ -}}
 {{ .Release.Name }}-cube-files
