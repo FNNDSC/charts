@@ -18,7 +18,7 @@ jobs:
             echo "::error ::No test directories found."
             exit 1
           fi
-          chart_dirs="$(echo "$test_dirs" | xargs dirname | tr '\n' ',')"
+          chart_dirs="$(echo "$test_dirs" | xargs dirname | tr '[:space:]' ',' | sed 's/,*$//')"
           echo "chart_dirs=$chart_dirs" >> "$GITHUB_OUTPUT"
       - name: Update Helm dependencies
         run: |
