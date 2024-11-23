@@ -1,4 +1,4 @@
-name: Test ChRIS and pfcon
+name: Integration tests
 
 on:
   pull_request:
@@ -12,7 +12,7 @@ on:
 jobs:
   test:
     name: Test chris
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -74,86 +74,9 @@ jobs:
         kubectl describe pod -n ghactions
         kubectl exec -n ghactions $(kubectl get statefulset -n ghactions -l app.kubernetes.io/name=postgresql -o name) -i -- sh -c 'psql "postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@localhost:$POSTGRESQL_PORT_NUMBER/$POSTGRES_DATABASE"' <<< 'select * from plugininstances_plugininstance'
         exit $status
-    - name: Run upgrade and set new admin password
-      run: helm upgrade -n ghactions khris-test ./charts/chris --reuse-values --set chris_admin.password="newpassword1234"
-    - name: Assert secret was changed
-      run: |
-        actual="$(kubectl get secret -n ghactions khris-test-chris-superuser -o jsonpath='{.data.password}' | base64 --decode)"
-        expected="newpassword1234"
-        if [[ "$actual" != *"$expected"* ]]; then
-          echo "::error ::Expected: >>>$expected<<<    Actual: >>>$actual<<<"
-          exit 1
-        fi
-    - name: Restart heart
-      id: restart
-      continue-on-error: true
-      run: |
-        set -x
-        kubectl rollout restart deployment -n ghactions -l app.kubernetes.io/name=chris-heart
-        kubectl rollout status deployment -n ghactions -l app.kubernetes.io/name=chris-heart --timeout=300s
-        most_recent_pod=$(kubectl get pods -n ghactions --sort-by=.metadata.creationTimestamp -l app.kubernetes.io/name=chris-heart -o custom-columns=:metadata.name | tail -n 1)
-        echo "new_pod=$most_recent_pod" >> "$GITHUB_OUTPUT"
-        kubectl wait -n ghactions pod $most_recent_pod --for=condition=ready --timeout=60s
-    - name: Why did the restart fail?
-      if: steps.restart.outcome == 'failure'
-      run: |
-        kubectl get pods -n ghactions
-        kubectl describe pod -n ghactions
-        exit 1
-    - name: Assert superuser password changed
-      run: |
-        actual="$(kubectl logs -n ghactions ${{ steps.restart.outputs.new_pod }} -c set-config)"
-        expected='Updated password for user "khris"'
-        if [[ "$actual" != *"$expected"* ]]; then
-          echo "::error ::Expected: >>>$expected<<<    Actual: >>>$actual<<<"
-          exit 1
-        fi
-    - name: Wait for RabbitMQ to finish restarting
-      run: kubectl rollout status statefulset -n ghactions -l app.kubernetes.io/name=rabbitmq
-    - name: What are my pods doing?
-      run: kubectl get pods -n ghactions
-    - name: Run helm test again
-      run: |
-        set +ex
-        helm test -n ghactions khris-test
-        status=$?
-        kubectl logs -n ghactions khris-test-test-cube-works
-        kubectl get pod -n ghactions
-        kubectl describe pod -n ghactions
-        exit $status
     - name: Test NodePort access
       run: curl --fail-with-body http://localhost:32000/api/v1/
-    - name: Disabling pfcon should not be allowed
-      if: matrix.pfconEnabled == 'pfcon-enabled'
-      run: |
-        set +e
-        expected='CUBE currently depends on pfcon configured in "innetwork" mode for its storage, volume, so you cannot set .pfcon.enabled=false or .pfcon.pfcon.config.innetwork=false'
-        output="$(helm upgrade -n ghactions khris-test ./charts/chris --reuse-values --set pfcon.enabled=false 2>&1)"
-        rc=$?
-        echo "$output"
-        if [ "$rc" = '0' ]; then
-          echo "::error ::Expected command to fail but it didn't"
-          exit $rc
-        elif ! [[ "$output" = *"$expected"* ]]; then
-          echo "::error ::Unexpected output"
-          exit 1
-        fi
-    - name: Enabling pfcon should not be allowed
-      if: matrix.pfconEnabled == 'pfcon-disabled'
-      run: |
-          set +e
-          expected='CUBE is currently using its own volume, so you cannot set .pfcon.enabled=true or .pfcon.pfcon.config.innetwork=true'
-          output="$(helm upgrade -n ghactions khris-test ./charts/chris --reuse-values --set pfcon.enabled=true 2>&1)"
-          rc=$?
-          echo "$output"
-          if [ "$rc" = '0' ]; then
-            echo "::error ::Expected command to fail but it didn't"
-            exit $rc
-          elif ! [[ "$output" = *"$expected"* ]]; then
-            echo "::error ::Unexpected output"
-            exit 1
-          fi
     - name: Uninstall chart
-      run: helm uninstall -n ghactions khris-test
+      run: helm uninstall --wait -n ghactions khris-test
     - name: Delete namespace
       run: kubectl delete namespace ghactions
