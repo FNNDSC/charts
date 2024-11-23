@@ -13,21 +13,21 @@ jobs:
       - name: Discover tests
         id: find
         run: |
-          test_dirs="$(find -mindepth 3 -maxdepth 3 -type d -name tests -print0)"
+          test_dirs="$(find -mindepth 3 -maxdepth 3 -type d -name tests)"
           if [ -z "$test_dirs" ]; then
             echo "::error ::No test directories found."
             exit 1
           fi
-          chart_dirs="$(echo "$test_dirs" | xargs -0 dirname | tr '\n' '\0')"
+          chart_dirs="$(echo "$test_dirs" | xargs dirname | tr '\n' ',')"
           echo "chart_dirs=$chart_dirs" >> "$GITHUB_OUTPUT"
       - name: Update Helm dependencies
         run: |
           echo '${{ steps.find.outputs.chart_dirs }}' \
-            | xargs -0 -L 1 helm dependency update
+            | xargs -d , -L 1 helm dependency update
       - name: Install helm-unittest
         run: helm plugin install https://github.com/helm-unittest/helm-unittest.git --version v0.6.3
       - name: Run unit tests
         run: |
           echo '${{ steps.find.outputs.chart_dirs }}' \
-            | xargs -0 -L 1 helm unittest
+            | xargs -d , -L 1 helm unittest
 
