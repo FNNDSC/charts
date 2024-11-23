@@ -34,7 +34,7 @@ spec:
         - name: pfcon
           image: "{{ .Values.pfcon.image.repository }}:{{ .Values.pfcon.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.pfcon.image.pullPolicy }}
-          command: ["gunicorn", "--bind", "0.0.0.0:5005", "--workers", "{{ .Values.pfcon.workers }}", "--timeout", "{{ .Values.pfcon.workerTimeout }}", "pfcon.wsgi:application"]
+          command: ["/entrypoint.sh", "gunicorn", "pfcon.wsgi:application"]
           envFrom:
             - configMapRef:
                 name: {{ .Release.Name }}-pfcon
