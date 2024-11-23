@@ -1,67 +1,20 @@
-# This file is for cutomizing how chris is deployed.
-
-# Name
-#####################
-
-nameOverride: ""
-fullnameOverride: ""
-
-
-# Stuff you can typically ignore
-#####################
-
-imagePullSecrets: []
-
-# Global settings
-#####################
-
 global:
   # storage class to use for persistent volume claims
-  storageClass: ""
+  storageClass: 'ocs-external-storagecluster-ceph-rbd'
 
-  # optional security context to apply to all pods
-  # podSecurityContext:
-  #   runAsUser: 123456
-  #   runAsGroup: 789
-
-  # compatibility:
-  #   openshift:
-  #     # optional, adapt security context of Bitnami subcharts for OpenShift compatibility
-  #     adaptSecurityContext: auto
-
-
-# Not used
-serviceAccount:
-  # Specifies whether a service account should be created
-  create: false
-  # Annotations to add to the service account
-  annotations: {}
-  # The name of the service account to use.
-  # If not set and create is true, a name is generated using the fullname template
-  name: ""
-
+  compatibility:
+    openshift:
+      # optional, adapt security context of Bitnami subcharts for OpenShift compatibility
+      adaptSecurityContext: auto
 
 # Ingress and HTTPS
 ingress:
   enabled: false
-  className: ""
-  annotations: {}
-    # kubernetes.io/ingress.class: nginx
-    # kubernetes.io/tls-acme: "true"
-  hosts:
-    - host: chart-example.local
-      paths:
-        - path: /
-          pathType: Prefix
-  tls: []
-  #  - secretName: chart-example-tls
-  #    hosts:
-  #      - chart-example.local
 
 # OpenShift route
 route:
-  enabled: false
-  host: chart-example.local
+  enabled: true
+  host: jennings-trying-chris.apps.shift.nerc.mghpcc.org
   tls:
     termination: edge
     insecureEdgeTerminationPolicy: Redirect
@@ -77,7 +30,7 @@ cube:
     tag: ""
 
   # Use inter-pod affinity as a workaround for using a ReadWriteOnce PersistentVolumeClaim
-  enablePodAffinityWorkaround: false
+  enablePodAffinityWorkaround: true
 
   # Prefix to use for job names submitted to Kubernetes. Ideally, this should be unique for each CUBE instance.
   # The default behavior is to use the release name as the job prefix.
@@ -87,7 +40,7 @@ cube:
   #####################
   config:
     # smaller values increases responsiveness at the cost of resource usage and possibly concurrency bugs
-    CUBE_CELERY_POLL_INTERVAL: "5.0"
+    CUBE_CELERY_POLL_INTERVAL: "10.0"
     # HTTP server security settings
     DJANGO_ALLOWED_HOSTS: "*"  # note: * is okay if OpenShift router or k8s igress is validating host header
     DJANGO_CORS_ALLOW_ALL_ORIGINS: "true"
@@ -96,9 +49,6 @@ cube:
     DJANGO_USE_X_FORWARDED_HOST: "false"
     # enable LDAP login
     AUTH_LDAP: "false"
-    # AUTH_LDAP_SERVER_URI: "ldap://192.168.0.29:389"
-    # AUTH_LDAP_BIND_DN: "cn=admin,dc=fnndsc,dc=org"
-    # AUTH_LDAP_USER_SEARCH_ROOT: "dc=fnndsc,dc=org"
 
   # -- Additional secret environment variables for CUBE.
   # -- Note: if `SECRET_KEY` is unset, its previous value will be looked up,
@@ -121,33 +71,25 @@ cube:
   storage:
     # In the default configuration, the volume is managed by pfcon's subchart, so leave this as "enabled: false"
     enabled: false
-    size: 100Gi
-    accessModes: [ "ReadWriteOnce" ]
-    # storageClass: ""
 
   # Resources
   #####################
 
   # -- Main celery worker configuration.
   workerMains:
-    # -- Command to run for the main worker.
-    command: ["celery", "-A", "core", "worker", "-c", "4", "-l", "info", "-Q", "main1,main2"]
     # -- Resources for the main worker.
     # -- If an out-of-network pfcon is configured, memory allocation must be **at least**
     # -- twice as large as the largest anticipated plugin instance output directory's
     # -- total size. This is because of an inefficient implementation.
     resources:
       requests:
-        memory: 4Gi
+        memory: 2Gi
         cpu: 1
       limits:
-        memory: 4Gi
+        memory: 2Gi
         cpu: 1
 
-  # -- Periodic celery worker configuration.
   workerPeriodic:
-    # -- Command to run for the periodic worker.
-    command: ['celery', '-A', 'core', 'worker', '-c', '2', '-l', 'info', '-Q', 'periodic']
     ## Resources for the periodic worker.
     ## Default values should be okay. Memory request may be further reduced to ~400Mi.
     resources:
@@ -173,8 +115,6 @@ cube:
       # -- nodePortHost does nothing. It is simply used to print the URL of CUBE in the NOTES
       nodePortHost:
 
-    # -- CUBE server command.
-    command: ["daphne", "-b", "0.0.0.0", "-p", "8000", "config.asgi:application"]
     # -- Resources for the HTTP server (ASGI).
     # -- Default values should be okay. About 256Mi of memory is needed per idle worker.
     resources:
@@ -187,16 +127,6 @@ cube:
 
     # -- CUBE server container hostPort.
     hostPort:
-
-    # -- CUBE server container livenessProbe.
-    livenessProbe:
-      enabled: true
-      httpGet:
-        path: /api/v1/users/
-        port: http
-      initialDelaySeconds: 5
-      periodSeconds: 5
-      timeoutSeconds: 5
 
 # Database
 #####################
@@ -250,9 +180,6 @@ rabbitmq:
   serviceBindings:
     enabled: true  # required
 
-  # networkPolicy:
-  #   enabled: false # required. FIXME
-
 # -- Configuration of NATS, a messaging system. In ChRIS, NATS is used for PACS retrieve
 # -- progress messages sent from oxidicom to CUBE.
 # -- Documentation: https://github.com/bitnami/charts/tree/nats/8.4.3/bitnami/nats
@@ -269,7 +196,7 @@ nats:
 
 # -- Configuration of pfcon, the ChRIS compute controller
 pfcon:
-  enabled: true
+  enabled: false
 
   name: "innetwork"
   description: "Kubernetes cluster compute resource"
@@ -336,7 +263,6 @@ pfcon:
     # Set securityContext of containers created by pman to have the same securityContext as .global.podSecurityContext
     # or the default fnndsc/cube container user, so that the container user can write to the shared volume's filesystem.
     # Should be disabled on OpenShift.
-    # FIXME detect OpenShift automatically: https://ao.owo.si/questions/74300303/helm-conditional-resource-creation-if-installing-on-openshift
     setSecurityContext: true
 
 
