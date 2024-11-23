@@ -14,3 +14,8 @@ maintainers:
 - name: The FNNDSC Dev Team
   email: dev@babyMRI.org
   url: https://fnndsc.org
+
+dependencies:
+- name: util
+  version: "~0.1.0"
+  repository: "https://fnndsc.github.io/charts"

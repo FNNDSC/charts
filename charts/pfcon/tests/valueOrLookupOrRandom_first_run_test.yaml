@@ -1,0 +1,17 @@
+suite: util.valueOrLookupOrRandom first run
+templates:
+  - pman-secrets.yml
+tests:
+  - it: should generate a random secret, base64-encoded
+    asserts:
+      - matchRegex:
+          path: data.SECRET_KEY
+          pattern: ^[-A-Za-z0-9+/]{40,}={0,3}$
+  - it: should use the given secret
+    set:
+      pman.secretKey: namesjamesbond
+    asserts:
+      - equal:
+          path: data.SECRET_KEY
+          value: namesjamesbond
+          decodeBase64: true

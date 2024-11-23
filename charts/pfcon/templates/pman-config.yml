@@ -6,19 +6,23 @@ metadata:
   labels:
     {{- include "pfcon.labels" . | nindent 4 }}
 data:
-  {{- if .Values.pman.podman.enabled }}
-  CONTAINER_ENV: docker
-  STORAGE_TYPE: docker_local_volume
-  {{- else }}
   CONTAINER_ENV: kubernetes
   STORAGE_TYPE: kubernetes_pvc
   JOB_NAMESPACE: {{ .Release.Namespace }}
-  {{- end }}
   VOLUME_NAME: {{ include "pfcon.storebase" . }}
   {{- toYaml .Values.pman.extraEnv | nindent 2 }}
-  {{- if .Values.pman.setSecurityContext }}
+  {{- $setSecurityContextIsSome := kindIs "bool" .Values.pman.setSecurityContext }}
+  {{- if (and (hasKey .Values.pman.extraEnv "CONTAINER_USER") $setSecurityContextIsSome (not .Values.pman.setSecurityContext)) }}
+  {{- fail "Cannot set value for .Values.pman.extraEnv.CONTAINER_USER because .Values.pman.setSecurityContext=false." }}
+  {{- end }}
+  {{- $setSecurityContextIsNone := not $setSecurityContextIsSome }}
+  {{- $isOpenShift := .Capabilities.APIVersions.Has "security.openshift.io/v1/SecurityContextConstraints" }}
+  {{- if (and (not (hasKey .Values.pman.extraEnv "CONTAINER_USER"))
+         (or (and $setSecurityContextIsSome .Values.pman.setSecurityContext)
+             (and $setSecurityContextIsNone (not $isOpenShift)))) }}
   {{- if .Values.global.podSecurityContext }}
-  CONTAINER_USER: {{ printf "%d:%d" (int64 .Values.global.podSecurityContext.runAsUser) (int64 .Values.global.podSecurityContext.runAsGroup) | quote }}
+  CONTAINER_USER: {{ printf "%d:%d" (int64 (.Values.global.podSecurityContext.runAsUser | default "1001"))
+                                    (int64 (.Values.global.podSecurityContext.runAsGroup | default "0")) | quote }}
   {{- else }}
   CONTAINER_USER: "1001:0"  # default user of fnndsc/cube's base image
   {{- end }}
