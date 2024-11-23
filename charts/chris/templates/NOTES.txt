@@ -1,11 +1,13 @@
+{{- $kubectl := ternary "oc" "kubectl" (.Capabilities.APIVersions.Has "security.openshift.io/v1/SecurityContextConstraints") -}}
+
 The ChRIS backend is being deployed. Please wait for it to be ready.
 You can run this command to block while the server is starting up:
 
-    kubectl wait --for=condition=ready pod -n {{ .Release.Namespace }} -l app.kubernetes.io/instance={{ .Release.Name }} -l app.kubernetes.io/name={{ include "chris.name" . }}-server --timeout=300s
+    {{ $kubectl }} wait --for=condition=ready pod -n {{ .Release.Namespace }} -l app.kubernetes.io/instance={{ .Release.Name }} -l app.kubernetes.io/name={{ include "chris.name" . }}-server --timeout=300s
 
 After that, try logging in as the admin user. The password can be revealed by running the command
 
-    kubectl get secret -n {{ .Release.Namespace }} {{ .Release.Name }}-chris-backend -o jsonpath='{.data.CHRIS_SUPERUSER_PASSWORD}' | base64 --decode
+    {{ $kubectl }} get secret -n {{ .Release.Namespace }} {{ .Release.Name }}-chris-backend -o jsonpath='{.data.CHRIS_SUPERUSER_PASSWORD}' | base64 --decode
 {{ if (and .Values.cube.server.service.nodePort .Values.cube.server.service.nodePortHost) }}
 Your CUBE API address is:
 
