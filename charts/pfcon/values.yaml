@@ -119,10 +119,10 @@ pman:
     IGNORE_LIMITS: "no"
     GUNICORN_CMD_ARGS: "--workers=4 --timeout=30"
 
-  # Set securityContext of containers created by pman to have the same securityContext as .global.podSecurityContext
-  # or the default fnndsc/cube container user, so that the container user can write to the shared volume's filesystem.
-  # Should be disabled on OpenShift.
-  setSecurityContext: true
-
   # -- Container security context for pfcon.
   securityContext: {}
+
+  # -- Set securityContext of containers created by pman to have the same securityContext as .global.podSecurityContext
+  # -- or the default fnndsc/cube container user, so that the container user can write to the shared volume's filesystem.
+  # -- Default behavior is to detect whether on OpenShift: if so, set as false, true otherwise.
+  setSecurityContext:
