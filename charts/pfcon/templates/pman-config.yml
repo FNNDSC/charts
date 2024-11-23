@@ -10,6 +10,9 @@ data:
   STORAGE_TYPE: kubernetes_pvc
   JOB_NAMESPACE: {{ .Release.Namespace }}
   VOLUME_NAME: {{ include "pfcon.storebase" . }}
+  {{- if (hasKey .Values.pman.extraEnv "SECRET_KEY") }}
+  {{- fail "Do not set pman.extraEnv.SECRET_KEY. Use pman.secretKey instead." }}
+  {{- end }}
   {{- toYaml .Values.pman.extraEnv | nindent 2 }}
   {{- $setSecurityContextIsSome := kindIs "bool" .Values.pman.setSecurityContext }}
   {{- if (and (hasKey .Values.pman.extraEnv "CONTAINER_USER") $setSecurityContextIsSome (not .Values.pman.setSecurityContext)) }}
