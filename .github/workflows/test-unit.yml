@@ -22,12 +22,12 @@ jobs:
           echo "chart_dirs=$chart_dirs" >> "$GITHUB_OUTPUT"
       - name: Update Helm dependencies
         run: |
-          echo '${{ steps.find.outputs.chart_dirs }}' \
+          printf '%s' '${{ steps.find.outputs.chart_dirs }}' \
             | xargs -d , -L 1 helm dependency update
       - name: Install helm-unittest
         run: helm plugin install https://github.com/helm-unittest/helm-unittest.git --version v0.6.3
       - name: Run unit tests
         run: |
-          echo '${{ steps.find.outputs.chart_dirs }}' \
+          printf '%s' '${{ steps.find.outputs.chart_dirs }}' \
             | xargs -d , -L 1 helm unittest
 
