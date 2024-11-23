@@ -6,5 +6,14 @@ metadata:
   labels:
     {{- include "pfcon.labels" . | nindent 4 }}
 data:
+  {{- if (hasKey .Values.pfcon.extraEnv "PFCON_INNETWORK") }}
+  {{- fail "Do not set pfcon.extraEnv.PFCON_INNETWORK. Use pfcon.config.innetwork instead." }}
+  {{- else if (hasKey .Values.pfcon.extraEnv "STORAGE_ENV") }}
+  {{- fail "Do not set pfcon.extraEnv.STORAGE_ENV. Use pfcon.config.storageEnv instead." }}
+  {{- end }}
   PFCON_INNETWORK: {{ .Values.pfcon.config.innetwork | quote }}
   STORAGE_ENV: {{ .Values.pfcon.config.storageEnv }}
+  {{- if (hasKey .Values.pfcon.extraEnv "SECRET_KEY") }}
+  {{- fail "Do not set pfcon.extraEnv.SECRET_KEY. Use pfcon.secretKey instead." }}
+  {{- end }}
+  {{- toYaml .Values.pfcon.extraEnv | nindent 2 }}
