@@ -1683,4 +1683,14 @@ entries:
     urls:
     - https://github.com/FNNDSC/charts/releases/download/pfcon-0.0.1/pfcon-0.0.1.tgz
     version: 0.0.1
-generated: "2024-06-03T16:46:40.026937673Z"
+  util:
+  - apiVersion: v2
+    created: "2024-11-23T07:43:14.437225937Z"
+    description: Library chart providing helper functions for FNNDSC Helm charts
+    digest: 2c038a9a566115747ec566f29d33b4ed228c8b4b2ab27caad1615d3d9605bc68
+    name: util
+    type: library
+    urls:
+    - https://github.com/FNNDSC/charts/releases/download/util-0.1.0/util-0.1.0.tgz
+    version: 0.1.0
+generated: "2024-11-23T07:43:14.437365898Z"
