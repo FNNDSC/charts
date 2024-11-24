@@ -75,7 +75,6 @@ env:
 
 
 {{- define "cube.pod" -}}
-serviceAccountName: {{ include "chris.serviceAccountName" . }}
 volumes:
   - name: file-storage
     persistentVolumeClaim:

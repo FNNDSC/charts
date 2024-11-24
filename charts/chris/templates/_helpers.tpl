@@ -5,10 +5,6 @@ Expand the name of the chart.
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
-{{- define "whatever" }}
-# .name={{.name}}
-{{- end }}
-
 {{/*
 Create a default fully qualified app name.
 We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
@@ -47,17 +43,6 @@ app.kubernetes.io/part-of: chris
 {{ include "chris.labels" . }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 app.kubernetes.io/component: backend
-{{- end }}
-
-{{/*
-Create the name of the service account to use
-*/}}
-{{- define "chris.serviceAccountName" -}}
-{{- if .Values.serviceAccount.create }}
-{{- default (include "chris.fullname" .) .Values.serviceAccount.name }}
-{{- else }}
-{{- default "default" .Values.serviceAccount.name }}
-{{- end }}
 {{- end }}
 
 {{- define "chris.nats.address" -}}
