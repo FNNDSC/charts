@@ -47,17 +47,6 @@ app.kubernetes.io/component: backend
 {{- end }}
 
 {{/*
-Create the name of the service account to use
-*/}}
-{{- define "chris.serviceAccountName" -}}
-{{- if .Values.serviceAccount.create }}
-{{- default (include "chris.fullname" .) .Values.serviceAccount.name }}
-{{- else }}
-{{- default "default" .Values.serviceAccount.name }}
-{{- end }}
-{{- end }}
-
-{{/*
 CUBE file storage
 --------------------------------------------------------------------------------
 In the default configuration, pfcon is configured as "innetwork" and CUBE uses
@@ -131,7 +120,6 @@ env:
 
 
 {{- define "cube.pod" -}}
-serviceAccountName: {{ include "chris.serviceAccountName" . }}
 volumes:
   - name: file-storage
     persistentVolumeClaim:
