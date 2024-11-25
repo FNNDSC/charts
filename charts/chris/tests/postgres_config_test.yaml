@@ -1,0 +1,58 @@
+suite: PostgreSQL configuration
+release:
+  name: testpgc
+templates:
+  - heart.yml
+tests:
+  - it: should use the postgresql subchart by default
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DATABASE_PORT
+            valueFrom:
+              secretKeyRef:
+                name: testpgc-postgresql-svcbind-custom-user
+                key: port
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: POSTGRES_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: testpgc-postgresql-svcbind-custom-user
+                key: password
+  - it: should be possible to bring-your-own-postgres
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      postgresql.enabled: false
+      postgresSecret.name: byop
+      postgresSecret.keys.username: user
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: POSTGRES_USER
+            valueFrom:
+              secretKeyRef:
+                name: byop
+                key: user
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: POSTGRES_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: byop
+                key: password
+  - it: should require postgres secret to be specified
+    set:
+      postgresql.enabled: false
+    asserts:
+      - failedTemplate:
+          errorMessage: postgresSecret.name cannot be unset because postgresql.enabled=false

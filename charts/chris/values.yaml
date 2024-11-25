@@ -187,12 +187,32 @@ cube:
       periodSeconds: 5
       timeoutSeconds: 5
 
-# Database
-#####################
+# -- Specify a secret containing connection parameters for the PostgreSQL database.
+# -- Ignore if `postgres.enabled=true`.
+postgresSecret:
+  # -- Name of existing secret for the postgres connection parameters.
+  # -- Required if `postgres.enabled=false`.
+  name:
+  keys:
+    # -- Name of the key for the postgres host value.
+    host: 'host'
+    # -- Name of the key for the postgres port value.
+    port: 'port'
+    # -- Name of the key for the postgres database value.
+    database: 'database'
+    # -- Name of the key for the postgres username value.
+    username: 'username'
+    # -- Name of the key for the postgres password value.
+    password: 'password'
+    # -- Name of the key for the postgres uri value.
+    uri: 'uri'
 
-# [SUBCHART] PostgreSQL packaged by Bitnami
-# https://github.com/bitnami/charts/tree/main/bitnami/postgresql#parameters
+# -- [SUBCHART] PostgreSQL packaged by Bitnami
+# -- https://github.com/bitnami/charts/tree/main/bitnami/postgresql#parameters
 postgresql:
+  # -- Enable the postgresql subchart. Set `enable=true` to keep life simple,
+  # -- or `enable=false` to use your own postgres.
+  enabled: true
 
   # no reason to change these values
   auth:
@@ -227,11 +247,13 @@ postgresql:
   serviceBindings:
     enabled: true  # required
 
-# [SUBCHART] RabbitMQ packaged by Bitnami
-# https://github.com/bitnami/charts/tree/main/bitnami/rabbitmq#parameters
+# -- [SUBCHART] RabbitMQ packaged by Bitnami
+# -- https://github.com/bitnami/charts/tree/main/bitnami/rabbitmq#parameters
 rabbitmq:
   persistence:
+    # -- Enable RabbitMQ data persistence using PVC
     enabled: true
+    # -- PVC Storage Request for RabbitMQ data volume
     size: 1Gi
 
   # -- Create secret for service binding (Experimental)
@@ -239,8 +261,15 @@ rabbitmq:
   serviceBindings:
     enabled: true  # required
 
-  # networkPolicy:
-  #   enabled: false # required. FIXME
+  # -- Set container resources according to one common preset
+  # -- (allowed values: none, nano, micro, small, medium, large,
+  # -- xlarge, 2xlarge). This is ignored if resources is set
+  # -- (resources is recommended for production).
+  resourcesPreset: small
+
+  # -- Set container requests and limits for different resources
+  # -- like CPU or memory (essential for production workloads)
+  resources: {}
 
 # -- Configuration of NATS, a messaging system. In ChRIS, NATS is used for PACS retrieve
 # -- progress messages sent from oxidicom to CUBE.

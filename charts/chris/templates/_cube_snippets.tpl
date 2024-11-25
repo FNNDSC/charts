@@ -42,6 +42,16 @@ yes
 {{- end }}
 {{- end }}
 
+{{- define "cube.db.secret" -}}
+{{- if .Values.postgresSecret.name -}}
+{{- .Values.postgresSecret.name -}}
+{{- else if .Values.postgresql.enabled -}}
+{{ .Release.Name }}-postgresql-svcbind-custom-user
+{{- else -}}
+{{- fail "postgresSecret.name cannot be unset because postgresql.enabled=false" -}}
+{{- end -}}
+{{- end -}}
+
 {{- define "cube.image" -}}
 {{ .Values.cube.image.repository }}:{{ .Values.cube.image.tag | default .Chart.AppVersion }}
 {{- end -}}
@@ -54,23 +64,30 @@ volumeMounts:
 envFrom:
   - configMapRef:
       name: {{ .Release.Name }}-cube-config
-  - configMapRef:
-      name: {{ .Release.Name }}-db-config
   - secretRef:
       name: {{ .Release.Name }}-chris-backend
-
 env:
-  - name: POSTGRES_PASSWORD
+  {{- $dbenvs := (dict
+    "POSTGRES_DB" .Values.postgresSecret.keys.database
+    "POSTGRES_USER" .Values.postgresSecret.keys.username
+    "POSTGRES_PASSWORD" .Values.postgresSecret.keys.password
+    "DATABASE_HOST" .Values.postgresSecret.keys.host
+    "DATABASE_PORT" .Values.postgresSecret.keys.port
+  ) }}
+  {{- $secretName := include "cube.db.secret" . }}
+  {{- range $name, $key := $dbenvs }}
+  - name: {{ $name }}
     valueFrom:
       secretKeyRef:
-        name: {{ .Release.Name }}-postgresql
-        key: password
+        name: {{ $secretName }}
+        key: {{ $key }}
+  {{- end }}
   - name: CELERY_BROKER_URL
     valueFrom:
       secretKeyRef:
         name: {{ .Release.Name }}-rabbitmq-svcbind
         key: uri
-{{/* N.B.: env comes last in this helper, so that more values can be appended to it */}}
+{{- /* N.B.: env comes last in this helper, so that more values can be appended to it */}}
 {{- end }}
 
 

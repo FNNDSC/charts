@@ -171,6 +171,7 @@ postgresql:
 # [SUBCHART] RabbitMQ packaged by Bitnami
 # https://github.com/bitnami/charts/tree/main/bitnami/rabbitmq#parameters
 rabbitmq:
+  resourcesPreset: medium
   persistence:
     enabled: true
     size: 1Gi
