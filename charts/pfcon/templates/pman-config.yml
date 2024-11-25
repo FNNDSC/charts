@@ -10,14 +10,17 @@ data:
   STORAGE_TYPE: kubernetes_pvc
   JOB_NAMESPACE: {{ .Release.Namespace }}
   VOLUME_NAME: {{ include "pfcon.storebase" . }}
-  {{- toYaml .Values.pman.config | nindent 2 }}
+  {{- if (hasKey .Values.pman.extraEnv "SECRET_KEY") }}
+  {{- fail "Do not set pman.extraEnv.SECRET_KEY. Use pman.secretKey instead." }}
+  {{- end }}
+  {{- toYaml .Values.pman.extraEnv | nindent 2 }}
   {{- $setSecurityContextIsSome := kindIs "bool" .Values.pman.setSecurityContext }}
-  {{- if (and (hasKey .Values.pman.config "CONTAINER_USER") $setSecurityContextIsSome (not .Values.pman.setSecurityContext)) }}
-  {{- fail "Cannot set value for .Values.pman.config.CONTAINER_USER because .Values.pman.setSecurityContext=false." }}
+  {{- if (and (hasKey .Values.pman.extraEnv "CONTAINER_USER") $setSecurityContextIsSome (not .Values.pman.setSecurityContext)) }}
+  {{- fail "Cannot set value for .Values.pman.extraEnv.CONTAINER_USER because .Values.pman.setSecurityContext=false." }}
   {{- end }}
   {{- $setSecurityContextIsNone := not $setSecurityContextIsSome }}
   {{- $isOpenShift := .Capabilities.APIVersions.Has "security.openshift.io/v1/SecurityContextConstraints" }}
-  {{- if (and (not (hasKey .Values.pman.config "CONTAINER_USER"))
+  {{- if (and (not (hasKey .Values.pman.extraEnv "CONTAINER_USER"))
          (or (and $setSecurityContextIsSome .Values.pman.setSecurityContext)
              (and $setSecurityContextIsNone (not $isOpenShift)))) }}
   {{- if .Values.global.podSecurityContext }}

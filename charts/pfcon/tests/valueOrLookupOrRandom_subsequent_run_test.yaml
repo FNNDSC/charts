@@ -1,0 +1,39 @@
+suite: util.valueOrLookupOrRandom subsequent run
+templates:
+  - pman-secrets.yml
+release:
+  name: subsequent-run-test
+  namespace: suruntest
+  revision: 2
+  upgrade: true
+kubernetesProvider:
+  scheme:
+    "v1/Secret":
+      gvr:
+        version: v1
+        resource: secrets
+      namespaced: true
+  objects:
+    - kind: Secret
+      apiVersion: v1
+      metadata:
+        name: subsequent-run-test-pman
+        namespace: suruntest
+      data:
+        SECRET_KEY: 'aWFtYm9sZAo='
+tests:
+  - it: should use the previous value
+    asserts:
+      - equal:
+          path: data.SECRET_KEY
+          value: 'aWFtYm9sZAo='
+          # note: decodeBase64 has a bug.
+          # See https://github.com/helm-unittest/helm-unittest/issues/494
+  - it: should use the given secret
+    set:
+      pman.secretKey: namesjamesbond
+    asserts:
+      - equal:
+          path: data.SECRET_KEY
+          value: namesjamesbond
+          decodeBase64: true

@@ -1,0 +1,22 @@
+suite: Validation of pfcon config
+templates:
+  - pfcon-config.yml
+tests:
+  - it: should show an error if pfcon.extraEnv.SECRET_KEY is set
+    set:
+      pfcon.extraEnv.SECRET_KEY: abc123
+    asserts:
+      - failedTemplate:
+          errorMessage: Do not set pfcon.extraEnv.SECRET_KEY. Use pfcon.secretKey instead.
+  - it: should not allow pfcon.extraEnv.PFCON_INNETWORK to be set
+    set:
+      pfcon.extraEnv.PFCON_INNETWORK: true
+    asserts:
+      - failedTemplate:
+          errorMessage: Do not set pfcon.extraEnv.PFCON_INNETWORK. Use pfcon.config.innetwork instead.
+  - it: should not allow pfcon.extraEnv.STORAGE_ENV to be set
+    set:
+      pfcon.extraEnv.STORAGE_ENV: "filesystem"
+    asserts:
+      - failedTemplate:
+          errorMessage: Do not set pfcon.extraEnv.STORAGE_ENV. Use pfcon.config.storageEnv instead.
