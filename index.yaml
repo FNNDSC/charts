@@ -1532,6 +1532,27 @@ entries:
   pfcon:
   - apiVersion: v2
     appVersion: 5.2.3
+    created: "2024-11-25T15:00:37.804289992Z"
+    dependencies:
+    - name: util
+      repository: https://fnndsc.github.io/charts
+      version: ~0.1.0
+    description: API for a ChRIS remote compute resource
+    digest: eba4d1dd05f46917f2089f55e2b30822182f326a8e5af05bbebb4b6b580779b1
+    maintainers:
+    - email: dev@babyMRI.org
+      name: The FNNDSC Dev Team
+      url: https://fnndsc.org
+    name: pfcon
+    sources:
+    - https://github.com/FNNDSC/charts
+    - https://github.com/FNNDSC/pfcon
+    type: application
+    urls:
+    - https://github.com/FNNDSC/charts/releases/download/pfcon-1.0.0-alpha.1/pfcon-1.0.0-alpha.1.tgz
+    version: 1.0.0-alpha.1
+  - apiVersion: v2
+    appVersion: 5.2.3
     created: "2024-11-23T19:30:46.753214479Z"
     description: API for a ChRIS remote compute resource
     digest: a24126f367cac0a95053e5ad986fa6d5ca93a9c201213d1071d055209dda6189
@@ -1710,4 +1731,4 @@ entries:
     urls:
     - https://github.com/FNNDSC/charts/releases/download/util-0.1.0/util-0.1.0.tgz
     version: 0.1.0
-generated: "2024-11-23T19:30:46.7533916Z"
+generated: "2024-11-25T15:00:37.804414917Z"
