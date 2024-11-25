@@ -1,36 +1,27 @@
 # This file is for cutomizing how chris is deployed.
 
-# Name
-#####################
-
 nameOverride: ""
 fullnameOverride: ""
 
-
-# Stuff you can typically ignore
-#####################
-
 imagePullSecrets: []
 
-# Global settings
-#####################
-
 global:
-  # storage class to use for persistent volume claims
+  # -- StorageClass to use for PersistentVolumeClaims
   storageClass: ""
 
-  # optional security context to apply to all pods
+  # -- Optional security context to apply to all pods
   # podSecurityContext:
   #   runAsUser: 123456
   #   runAsGroup: 789
 
+  # -- Bitnami subchart OpenShift compatibility settings
   # compatibility:
   #   openshift:
   #     # optional, adapt security context of Bitnami subcharts for OpenShift compatibility
   #     adaptSecurityContext: auto
 
 
-# Ingress and HTTPS
+# -- Ingress
 ingress:
   enabled: false
   className: ""
@@ -47,7 +38,7 @@ ingress:
   #    hosts:
   #      - chart-example.local
 
-# OpenShift route
+# -- OpenShift route
 route:
   enabled: false
   host: chart-example.local
@@ -56,8 +47,7 @@ route:
     insecureEdgeTerminationPolicy: Redirect
     destinationCACertificate: ''
 
-# ChRIS Backend
-#####################
+# -- ChRIS backend (CUBE) configuration.
 cube:
   image:
     repository: ghcr.io/fnndsc/cube
@@ -65,29 +55,40 @@ cube:
     # Overrides the image tag whose default is the chart appVersion.
     tag: ""
 
-  # Use inter-pod affinity as a workaround for using a ReadWriteOnce PersistentVolumeClaim
+  # -- Use inter-pod affinity as a workaround for using a ReadWriteOnce PersistentVolumeClaim
   enablePodAffinityWorkaround: false
 
-  # Prefix to use for job names submitted to Kubernetes. Ideally, this should be unique for each CUBE instance.
-  # The default behavior is to use the release name as the job prefix.
-  # jobPrefix: ""
+  # -- Prefix to use for job names submitted to Kubernetes. Must be a unique when the
+  # -- Kubernetes namespace is used for more than one instance of CUBE.
+  # -- The default behavior is to use the release name as the job prefix.
+  jobPrefix:
 
-  # Configuration
-  #####################
+  # -- CUBE configuration
   config:
-    # smaller values increases responsiveness at the cost of resource usage and possibly concurrency bugs
+    # -- Event polling frequency. Smaller value increases responsiveness at the cost of increased resource
+    # -- usage and possible concurrency bugs.
     CUBE_CELERY_POLL_INTERVAL: "5.0"
-    # HTTP server security settings
-    DJANGO_ALLOWED_HOSTS: "*"  # note: * is okay if OpenShift router or k8s igress is validating host header
+    # -- Allowed hosts. Note: "*" is okay and convenient when OpenShift router or
+    # -- k8s ingress is validating the HTTP Host header.
+    DJANGO_ALLOWED_HOSTS: "*"
     DJANGO_CORS_ALLOW_ALL_ORIGINS: "true"
     DJANGO_CORS_ALLOWED_ORIGINS: ""
     DJANGO_SECURE_PROXY_SSL_HEADER: ""
     DJANGO_USE_X_FORWARDED_HOST: "false"
-    # enable LDAP login
-    AUTH_LDAP: "false"
+
+    # -- Enable LDAP authentication
+    AUTH_LDAP: false
     # AUTH_LDAP_SERVER_URI: "ldap://192.168.0.29:389"
     # AUTH_LDAP_BIND_DN: "cn=admin,dc=fnndsc,dc=org"
     # AUTH_LDAP_USER_SEARCH_ROOT: "dc=fnndsc,dc=org"
+    # AUTH_LDAP_GROUP_SEARCH_ROOT:
+    # AUTH_LDAP_CHRIS_ADMIN_GROUP:
+
+    # -- Disable user account creation via API.
+    # -- If `true`, user accounts can only be created manually or
+    # -- via SSO (LDAP, ...)
+    # -- A value of `false` would allow anyone to create an account.
+    DISABLE_USER_ACCOUNT_CREATION: true
 
   # -- Additional secret environment variables for CUBE.
   # -- Note: if `SECRET_KEY` is unset, its previous value will be looked up,
@@ -96,35 +97,33 @@ cube:
     # AUTH_LDAP_BIND_PASSWORD: "admin1234"
     # SECRET_KEY: supersecretkey  # https://docs.djangoproject.com/en/5.1/ref/settings/#secret-key
 
-  # Set of default plugins to register with the coupled pfcon (if .pfcon.enabled)
-  # Plugins which CUBE is hard-coded to depend on should be listed here.
-  # To add plugins for general use, see https://chrisproject.org/docs/tutorials/upload_plugin
+  # -- Set of default plugins to register with the coupled pfcon (if .pfcon.enabled)
+  # -- Plugins which CUBE is hard-coded to depend on should be listed here.
+  # -- To add plugins for general use, see https://chrisproject.org/docs/tutorials/upload_plugin
   plugins:
     - https://cube.chrisproject.org/api/v1/plugins/1/   # pl-dircopy
     - https://cube.chrisproject.org/api/v1/plugins/2/   # pl-tsdircopy
     - https://cube.chrisproject.org/api/v1/plugins/3/   # pl-topologicalcopy
 
-  # Storage
-  #####################
-  # Persistent volume for CUBE files
+  # -- CUBE files storage
   storage:
-    # In the default configuration, the volume is managed by pfcon's subchart, so leave this as "enabled: false"
+    # -- Enable persistent storage.
+    # -- The default configuration (which is recommended for most cases)
+    # -- is to share one PersistentVolumeClaim between pfcon and CUBE.
+    # -- Leave `enabled=false` unless you know what you're doing.
     enabled: false
     size: 100Gi
     accessModes: [ "ReadWriteOnce" ]
     # storageClass: ""
-
-  # Resources
-  #####################
 
   # -- Main celery worker configuration.
   workerMains:
     # -- Command to run for the main worker.
     command: ["celery", "-A", "core", "worker", "-c", "4", "-l", "info", "-Q", "main1,main2"]
     # -- Resources for the main worker.
-    # -- If an out-of-network pfcon is configured, memory allocation must be **at least**
-    # -- twice as large as the largest anticipated plugin instance output directory's
-    # -- total size. This is because of an inefficient implementation.
+    # -- If an out-of-network pfcon is configured, recommended memory limit is twice
+    # -- the largest anticipated plugin instance output directory's total size.
+    # -- This is because of inefficient implementation, see https://github.com/FNNDSC/ChRIS_ultron_backEnd/issues/377
     resources:
       requests:
         memory: 4Gi
@@ -137,11 +136,10 @@ cube:
   workerPeriodic:
     # -- Command to run for the periodic worker.
     command: ['celery', '-A', 'core', 'worker', '-c', '2', '-l', 'info', '-Q', 'periodic']
-    ## Resources for the periodic worker.
-    ## Default values should be okay. Memory request may be further reduced to ~400Mi.
+    # -- Resources for the periodic worker. Defaults are good enough.
     resources:
       requests:
-        memory: 1Gi
+        memory: 512Mi
         cpu: 250m
       limits:
         memory: 1Gi
@@ -159,13 +157,13 @@ cube:
       port: 8000
       # -- CUBE server service nodePort
       nodePort:
-      # -- nodePortHost does nothing. It is simply used to print the URL of CUBE in the NOTES
+      # -- Hostname of node from which the NodePort will be accessed.
+      # -- (nodePortHost doesn't have an effect, it's only useful for NOTES.txt)
       nodePortHost:
 
     # -- CUBE server command.
     command: ["daphne", "-b", "0.0.0.0", "-p", "8000", "config.asgi:application"]
     # -- Resources for the HTTP server (ASGI).
-    # -- Default values should be okay. About 256Mi of memory is needed per idle worker.
     resources:
       requests:
         memory: 2Gi
@@ -179,6 +177,7 @@ cube:
 
     # -- CUBE server container livenessProbe.
     livenessProbe:
+      # -- Enable the livenessProbe.
       enabled: true
       httpGet:
         path: /api/v1/users/
@@ -211,16 +210,14 @@ postgresSecret:
 # -- https://github.com/bitnami/charts/tree/main/bitnami/postgresql#parameters
 postgresql:
   # -- Enable the postgresql subchart. Set `enable=true` to keep life simple,
-  # -- or `enable=false` to use your own postgres.
+  # -- or `enable=false` if using your own existing postgres.
   enabled: true
 
-  # no reason to change these values
   auth:
     database: "chris"
     username: "chris"
 
-  # one of: [standalone, replication]
-  # Replication is supported, see upstream README.md for configuration.
+  # -- one of: [standalone, replication]
   architecture: standalone
 
   primary:
@@ -234,7 +231,7 @@ postgresql:
     resources: {}
     persistence:
       enabled: true
-      size: 8Gi
+      size: 4Gi
 
   # Defer control of security configurations to OpenShift
   volumePermissions:
@@ -342,25 +339,23 @@ pfcon:
     workers: 4
     workerTimeout: 30
 
-    # pman configuration
-    # https://github.com/fnndsc/pman#environment-variables
-    # SECRET_KEY, CONTAINER_ENV, STORAGE_TYPE, VOLUME_NAME, and CONTAINER_USER are handled automatically
+    # -- pman configuration
+    # -- https://github.com/FNNDSC/pman#environment-variables
+    # -- N.B.: SECRET_KEY, CONTAINER_ENV, STORAGE_TYPE, VOLUME_NAME, and CONTAINER_USER
+    # -- are handled automatically, and should not be manually set.
     config:
       JOB_LABELS: chrisproject.org/job=plugininstance
       ENABLE_HOME_WORKAROUND: "yes"
       REMOVE_JOBS: "yes"
       IGNORE_LIMITS: "no"
 
-    # Set securityContext of containers created by pman to have the same securityContext as .global.podSecurityContext
-    # or the default fnndsc/cube container user, so that the container user can write to the shared volume's filesystem.
-    # Should be disabled on OpenShift.
-    # FIXME detect OpenShift automatically: https://ao.owo.si/questions/74300303/helm-conditional-resource-creation-if-installing-on-openshift
+    # -- Set securityContext of containers created by pman to have the same securityContext as .global.podSecurityContext
+    # -- or the default fnndsc/cube container user, so that the container user can write to the shared volume's filesystem.
+    # -- Default behavior is to detect whether on OpenShift: if so, set as false, true otherwise.
     setSecurityContext: true
 
 
-# pfdcm: ChRIS PACS connector
-#####################
-
+# -- Configuration of PFDCM, the ChRIS PACS interface
 pfdcm:
   enabled: false
   image:
@@ -373,7 +368,7 @@ pfdcm:
     type: ClusterIP
     port: 4005
     # nodePort:
-  # OpenShift route
+  # -- OpenShift route configuration
   route:
     enabled: false
     host: chart-example.local
@@ -475,9 +470,9 @@ pfdcm:
         cpu: 250m
         memory: 256Mi
 
-# PACS server
+# -- Orthanc open-source PACS server
 orthanc:
-  # If Orthanc is enabled, it is recommended to also enable pfdcm.
+  # -- Enable Orthanc. If true, it is recommended to also set pfdcm.enabled=true.
   enabled: false
   podAnnotations: {}
   podSecurityContext: {}
