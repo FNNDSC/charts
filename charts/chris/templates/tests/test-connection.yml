@@ -14,7 +14,7 @@ spec:
   restartPolicy: Never
   containers:
     - name: create-user-test
-      image: ghcr.io/fnndsc/aiochris:0.4.0
+      image: ghcr.io/fnndsc/aiochris:0.10.0
       command:
         - python
         - -c
@@ -26,7 +26,7 @@ spec:
 
           logging.basicConfig(level=logging.INFO)
 
-          url = 'http://{{ .Release.Name }}-heart:8000/api/v1/'
+          url = 'http://{{ include "chris.heart.name" . }}:{{ include "chris.heart.port" . }}/api/v1/'
           username = f'helmtest-{int(time.time())}'
           password = ''.join(random.choices(string.ascii_uppercase + string.ascii_lowercase + string.digits, k=12))
           email = f'{username}@example.org'
@@ -39,6 +39,7 @@ spec:
 
               file = Path('/tmp/data.txt')
               file.write_bytes(data)
+              # TODO FIX ME
               uploaded_file = await chris.upload_file(file, 'helm-test/data.txt')
               logging.info(f'uploaded file {uploaded_file.url}')
 

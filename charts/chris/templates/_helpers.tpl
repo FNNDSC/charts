@@ -41,135 +41,33 @@ app.kubernetes.io/part-of: chris
 
 {{- define "cube.labels" -}}
 {{ include "chris.labels" . }}
-app.kubernetes.io/instance: {{ .Release.Name }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 app.kubernetes.io/component: backend
 {{- end }}
 
-{{/*
-Create the name of the service account to use
-*/}}
-{{- define "chris.serviceAccountName" -}}
-{{- if .Values.serviceAccount.create }}
-{{- default (include "chris.fullname" .) .Values.serviceAccount.name }}
-{{- else }}
-{{- default "default" .Values.serviceAccount.name }}
-{{- end }}
-{{- end }}
-
-{{/*
-CUBE file storage
---------------------------------------------------------------------------------
-In the default configuration, pfcon is configured as "innetwork" and CUBE uses
-the volume managed by the pfcon subchart for file storage.
-If pfcon is not enabled or not configured as "innetwork" then CUBE needs to create
-its own PVC.
-*/}}
-
-{{- define "cube.useOwnVolume" -}}
-{{- if (and .Values.pfcon.enabled .Values.pfcon.pfcon.config.innetwork) -}}
-{{- /* no (empty value) */ -}}
-{{- else -}}
-yes
-{{- end }}
-{{- end }}
-
-{{- define "cube.wasUsingOwnVolume" -}}
-{{- with (lookup "v1" "PersistentVolumeClaim" .Release.Namespace ( print .Release.Name "-cube-files")) -}}
-yes
+{{- define "chris.nats.address" -}}
+{{- if .Values.nats.auth.enabled -}}
+{{- fail "ChRIS does not work with NATS auth, please set .Values.nats.auth.enabled=false" -}}
 {{- end -}}
+nats://{{ include "common.names.fullname" .Subcharts.nats }}:{{ .Values.nats.service.ports.client | default 4222 }}
 {{- end -}}
 
-{{- define "cube.filesVolume" -}}
-{{- /*
-      Validators to check that you aren't self-destructive.
+{{- define "chris.heart.name" -}}
+{{ include "chris.fullname" . }}-heart
+{{- end -}}
 
-      You should never:
-      - enable "innetwork pfcon" where previously it wasn't
-      - disable "innetwork pfcon" where it previously was
-*/ -}}
-{{- if      (and .Release.IsUpgrade (eq "yes" (include "cube.wasUsingOwnVolume" .)) (ne "yes" (include "cube.useOwnVolume" .)))  -}}
-{{- fail "CUBE is currently using its own volume, so you cannot set .pfcon.enabled=true or .pfcon.pfcon.config.innetwork=true now!" -}}
-{{- else if (and .Release.IsUpgrade (ne "yes" (include "cube.wasUsingOwnVolume" .)) (eq "yes" (include "cube.useOwnVolume" .)))  -}}
-{{- fail "CUBE currently depends on pfcon configured in \"innetwork\" mode for its storage, volume, so you cannot set .pfcon.enabled=false or .pfcon.pfcon.config.innetwork=false now!" -}}
-{{- else if (include "cube.useOwnVolume" .) -}}
-{{- /* will be created by ./storage.yml */ -}}
-{{ .Release.Name }}-cube-files
-{{- else -}}
-{{- /* defined in ../../pfcon/templates/storage.yml */ -}}
-{{ .Release.Name }}-storebase
-{{- end }}
-{{- end }}
+{{- define "chris.heart.port" -}}
+8000
+{{- end -}}
 
-{{/*
-CUBE container common properties
---------------------------------------------------------------------------------
-*/}}
+{{- define "chris.heart.appName" -}}
+{{ include "chris.name" . }}-heart
+{{- end -}}
 
-{{- define "cube.container" -}}
-image: "{{ .Values.cube.image.repository }}:{{ .Values.cube.image.tag | default .Chart.AppVersion }}"
-imagePullPolicy: {{ .Values.cube.image.pullPolicy }}
-volumeMounts:
-  - mountPath: /data
-    name: file-storage
-envFrom:
-  - configMapRef:
-      name: {{ .Release.Name }}-cube-config
-  - configMapRef:
-      name: {{ .Release.Name }}-db-config
-  - secretRef:
-      name: {{ .Release.Name }}-cube-secrets
-
-env:
-  - name: POSTGRES_PASSWORD
-    valueFrom:
-      secretKeyRef:
-        name: {{ .Release.Name }}-postgresql
-        key: password
-{{/* N.B.: env comes last in this helper, so that more values can be appended to it */}}
-{{- end }}
-
-
-{{- define "cube.pod" -}}
-serviceAccountName: {{ include "chris.serviceAccountName" . }}
-volumes:
-  - name: file-storage
-    persistentVolumeClaim:
-      claimName: {{ include "cube.filesVolume" . }}
-{{- if .Values.global.podSecurityContext }}
-securityContext:
-  {{- toYaml .Values.global.podSecurityContext | nindent 2 }}
-{{- end }}
-{{- end }}
-
-{{- define "cube.podAffinityWorkaround" -}}
-{{ if .Values.cube.enablePodAffinityWorkaround }}
-affinity:
-  podAffinity:
-    requiredDuringSchedulingIgnoredDuringExecution:
-    - labelSelector:
-        matchExpressions:
-        - key: app.kubernetes.io/instance
-          operator: In
-          values:
-          - {{ .Release.Name }}
-        {{- /* if CUBE is using its own volume, pods should be attracted to heart. Otherwise, pods should be attracted to pfcon. */}}
-        - key: app.kubernetes.io/name
-          operator: In
-          values:
-          - {{ if (include "cube.useOwnVolume" .) }}{{ .Release.Name }}{{ else }}pfcon{{ end }}
-      topologyKey: kubernetes.io/hostname
-{{- end }}
-{{- end }}
-
-# Since the server deployment is the one which defines the database migrations, everything else
-# should start after the server. It's ok for ancillary services to be started late.
-{{- define "cube.waitServerReady" -}}
-- name: wait-for-server
-  image: quay.io/prometheus/busybox:latest
-  command: ["/bin/sh", "-c"]
-  args: ["until wget --spider 'http://{{ .Release.Name }}-heart:8000/api/v1/users/'; do sleep 5; done"]
-{{- end }}
+{{- define "chris.heart.matcher" -}}
+app.kubernetes.io/name: {{ include "chris.heart.appName" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end -}}
 
 {{/*
 pfdcm stuff
@@ -193,9 +91,33 @@ app.kubernetes.io/component: pfdcm
 app.kubernetes.io/instance: {{ .Release.Name }}
 app.kubernetes.io/version: {{ include "pfdcm.listenerVersion" . | quote }}
 app.kubernetes.io/component: backend
-app.kubernetes.io/part-of: chris
 {{- end }}
 
 {{- define "pfdcm.listenerService" -}}
 {{ .Release.Name }}-oxidicom
+{{- end -}}
+
+{{/*
+Helper function to use a value. If the value is unset, try looking up the previous value
+from a secret. If the secret does not exist, generate a random value with a specified length.
+*/}}
+{{- define "valueOrLookupOrRandom" -}}
+{{- if .value -}}
+  {{- .value | b64enc | quote -}}
+{{- else -}}
+  {{- $length := .length | default 32 -}}
+  {{- $name := .name -}}
+  {{- if (not $name) -}}
+    {{- fail (printf "valueOrLookupOrRandom was not called with required parameter 'name'. Given parameters: %s" (keys .)) -}}
+  {{- end -}}
+  {{- with (lookup "v1" "Secret" .root.Release.Namespace .secret) -}}
+    {{- if (hasKey .data $name) -}}
+      {{- (index .data $name) | quote -}}
+    {{- else -}}
+      {{- randAlphaNum $length | b64enc | quote -}}
+    {{- end -}}
+  {{- else -}}
+    {{- randAlphaNum $length | b64enc | quote -}}
+  {{- end -}}
+{{- end -}}
 {{- end -}}

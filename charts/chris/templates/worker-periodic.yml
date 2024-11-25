@@ -1,44 +1,5 @@
-apiVersion: apps/v1
-
-kind: Deployment
-metadata:
-  name: {{ include "chris.fullname" . }}-worker-periodic
-  namespace: {{ .Release.Namespace }}
-  labels:
-    app.kubernetes.io/name: {{ include "chris.name" . }}-worker-periodic
-    {{- include "cube.labels" . | nindent 4 }}
-  annotations:
-    kubernetes.io/description: "ChRIS backend periodic tasks"
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: {{ include "chris.name" . }}-worker-periodic
-      app.kubernetes.io/instance: {{ .Release.Name }}
-  template:
-    metadata:
-      name: {{ .Release.Name }}-worker-periodic
-      namespace: {{ .Release.Namespace }}
-      {{- with .Values.podAnnotations }}
-      annotations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      labels:
-        app.kubernetes.io/name: {{ include "chris.name" . }}-worker-periodic
-        {{- include "cube.labels" . | nindent 8 }}
-    spec:
-      {{- with .Values.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      initContainers:
-        {{- include "cube.waitServerReady" . | nindent 8 }}
-      containers:
-        - name: worker-periodic
-          command: ["celery", "-A", "core", "worker", "-c", "2", "-l", "info", "-Q", "periodic"]
-          {{- include "cube.container" . | nindent 10 }}
-          resources:
-            {{- toYaml .Values.cube.workerPeriodic.resources | nindent 12 }}
-
-      {{- include "cube.pod" . | nindent 6 }}
-      {{- include "cube.podAffinityWorkaround" . | nindent 6 }}
+{{- include "cube.deployment" (mustMerge (dict
+  "name" "worker-periodic"
+  "command" .Values.cube.workerPeriodic.command
+  "resources" .Values.cube.workerPeriodic.resources
+) . ) -}}

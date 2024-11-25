@@ -2,30 +2,26 @@ apiVersion: apps/v1
 
 kind: Deployment
 metadata:
-  name: {{ include "chris.fullname" . }}-heart
+  name: {{ include "chris.heart.name" . }}
   namespace: {{ .Release.Namespace }}
   labels:
-    app.kubernetes.io/name: {{ include "chris.name" . }}-heart
+    {{- include "chris.heart.matcher" . | nindent 4 }}
     {{- include "cube.labels" . | nindent 4 }}
   annotations:
-    kubernetes.io/description: "Celery beat and private server"
+    kubernetes.io/description: "Celery beat and startup coordination server"
 spec:
-  # IMPORTANT: celery beat and private server should not be replicated!
-  replicas: 1
+  replicas: 1 {{- /* important: celery beat should not be replicated! */}}
   selector:
     matchLabels:
-      app.kubernetes.io/name: {{ include "chris.name" . }}-heart
-      app.kubernetes.io/instance: {{ .Release.Name }}
+      {{- include "chris.heart.matcher" . | nindent 6 }}
   template:
     metadata:
-      name: {{ .Release.Name }}-heart
-      namespace: {{ .Release.Namespace }}
       {{- with .Values.podAnnotations }}
       annotations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        app.kubernetes.io/name: {{ include "chris.name" . }}-heart
+        {{- include "chris.heart.matcher" . | nindent 8 }}
         {{- include "cube.labels" . | nindent 8 }}
     spec:
       {{- with .Values.imagePullSecrets }}
@@ -34,13 +30,16 @@ spec:
       {{- end }}
       initContainers:
         - name: wait-db
-          # N.B. hard-coded image is not necessarily same as the one used by the subchart, but should be OK
-          image: docker.io/bitnami/postgresql:16.0.0-debian-11-r3
+          {{- /* N.B. hard-coded image is not necessarily same as the one used by the subchart, but should be OK */}}
+          image: docker.io/bitnami/postgresql:16.4.0-debian-12-r12
           imagePullPolicy: IfNotPresent
           command:
             - /bin/sh
             - -c
-            - until pg_isready -U postgres -h {{ .Release.Name }}-postgresql -p 5432; do sleep 1; done
+            - until pg_isready -U "$username" -h $host -p $port; do sleep 1; done
+          envFrom:
+            - secretRef:
+                name: {{ .Release.Name }}-postgresql-svcbind-custom-user
         - name: migratedb
           command: ["python", "manage.py", "migrate", "--noinput"]
           {{- include "cube.container" . | nindent 10 }}
@@ -66,7 +65,12 @@ spec:
               for plugin_url in "${plugins[@]}"; do
                 python plugins/services/manager.py register "$name" --pluginurl "$plugin_url"
               done
-          {{- include "cube.container" . | nindent 10 }}
+          {{- $pfconSecret := printf "%s-pfcon" .Release.Name }}
+          {{- $pfconEnv := (dict
+            "PFCON_USER"     (dict "valueFrom" "secretKeyRef" "name" $pfconSecret "key" "PFCON_USER")
+            "PFCON_PASSWORD" (dict "valueFrom" "secretKeyRef" "name" $pfconSecret "key" "PFCON_PASSWORD")
+          ) }}
+          {{- include "cube.container" (mustMerge (dict "moreEnv" $pfconEnv) .) | nindent 10 }}
             - name: PFCON_USER
               valueFrom:
                 secretKeyRef:
@@ -78,71 +82,32 @@ spec:
                   name: {{ .Release.Name }}-pfcon
                   key: PFCON_PASSWORD
         {{- end }}
-        - name: set-config
+
+        - name: wait-rabbitmq
+          image: {{ include "cube.image" . }}
           command:
           - python
-          - manage.py
-          - shell
           - -c
           - |
             import os
-            import json
-            from core.models import ChrisInstance
-            from django.contrib.auth.models import User
-
-            chris_instance = ChrisInstance.load()
-            chris_instance.job_id_prefix = {{ .Values.cube.jobPrefix | default (printf "%s-jid-" .Release.Name) | quote }}
-            chris_instance.save()
-
-            superuser_config = {
-                'username': os.environ['CHRIS_SUPERUSER_USERNAME'],
-                'password': os.environ['CHRIS_SUPERUSER_PASSWORD'],
-                'email': os.environ['CHRIS_SUPERUSER_EMAIL']
-            }
-            if (existing_user := User.objects.filter(username=superuser_config['username']).first()) is not None:
-                existing_user.set_password(superuser_config['password'])
-                existing_user.save()
-                print(f'Updated password for user "{existing_user.username}"')
-            else:
-                created_user = User.objects.create_superuser(**superuser_config)
-                print(f'Created superuser "{created_user.username}"')
-          {{- include "cube.container" . | nindent 10 }}
-            - name: CHRIS_SUPERUSER_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Release.Name }}-chris-superuser
-                  key: username
-            - name: CHRIS_SUPERUSER_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Release.Name }}-chris-superuser
-                  key: password
-            - name: CHRIS_SUPERUSER_EMAIL
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Release.Name }}-chris-superuser
-                  key: email
-
-        - name: wait-rabbitmq
-          command:
-          - python
-          - -c
-          - |
             import requests
-            url = 'http://{{ .Values.rabbitmq.auth.username }}:{{ .Values.rabbitmq.auth.password }}@{{ .Release.Name }}-rabbitmq:15672/api/aliveness-test/%2F'
+            url = f'http://{os.getenv("host")}:15672/api/aliveness-test/%2F'
+            auth = (os.getenv('username'), os.getenv('password'))
             counter = 0
             status = {}
             while status != {'status': 'ok'}:
                 print(f'RabbitMQ startup poll # {counter}', flush=True)
                 counter += 1
                 try:
-                    res = requests.get(url)
+                    res = requests.get(url, auth=auth)
                 except requests.ConnectionError:
                     continue
                 if res.status_code != 200:
                     continue
                 status = res.json()
-          {{- include "cube.container" . | nindent 10 }}
+          envFrom:
+            - secretRef:
+                name: {{ .Release.Name }}-rabbitmq-svcbind
 
       containers:
         - name: celery-beat
@@ -157,11 +122,11 @@ spec:
               memory: 512Mi
               cpu: 100m
         - name: server-private
-          command: ["gunicorn", "-b", "0.0.0.0:8000", "-w", "1", "config.wsgi:application"]
+          command: ["daphne", "-b", "0.0.0.0", "-p", "{{ include "chris.heart.port" . }}", "config.asgi:application"]
           {{- include "cube.container" . | nindent 10 }}
           ports:
             - name: http
-              containerPort: 8000
+              containerPort: {{ include "chris.heart.port" . }}
           resources:
             requests:
               memory: 384Mi
@@ -169,11 +134,10 @@ spec:
             limits:
               memory: 1Gi
               cpu: 1000m
-          livenessProbe:
+          readinessProbe:
             httpGet:
               path: /api/v1/users/
               port: http
-            initialDelaySeconds: 5
             periodSeconds: 5
             timeoutSeconds: 5
 
@@ -188,20 +152,19 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ .Release.Name }}-heart
+  name: {{ include "chris.heart.name" . }}
   namespace: {{ .Release.Namespace }}
   labels:
-    app.kubernetes.io/name: {{ include "chris.name" . }}-heart
+    {{- include "chris.heart.matcher" . | nindent 4 }}
     {{- include "cube.labels" . | nindent 4 }}
   annotations:
-    kubernetes.io/description: "Private ChRIS API endpoint for internal use"
+    kubernetes.io/description: "Private CUBE API endpoint for coordinating the startup of dependent ChRIS services."
 spec:
   type: ClusterIP
   selector:
-    app.kubernetes.io/name: {{ include "chris.name" . }}-heart
-    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "chris.heart.matcher" . | nindent 4 }}
   ports:
     - name: http
       protocol: TCP
-      port: 8000
-      targetPort: 8000
+      port: {{ include "chris.heart.port" . }}
+      targetPort: {{ include "chris.heart.port" . }}

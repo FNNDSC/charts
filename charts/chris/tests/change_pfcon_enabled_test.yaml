@@ -1,0 +1,34 @@
+suite: pfcon currently enabled
+templates:
+  - heart.yml
+release:
+  name: haspfcon
+  namespace: changepfconenabled
+  revision: 2
+  upgrade: true
+kubernetesProvider:
+  scheme:
+    "v1/PersistentVolumeClaim":
+      gvr:
+        version: v1
+        resource: persistentvolumeclaims
+      namespaced: true
+  objects:
+    - kind: PersistentVolumeClaim
+      apiVersion: v1
+      metadata:
+        name: haspfcon-storebase
+        namespace: changepfconenabled
+tests:
+  - it: should not allow pfcon to be disabled
+    set:
+      pfcon.enabled: false
+    asserts:
+      - failedTemplate:
+          errorMessage: Cannot set pfcon.enabled=false and/or pfcon.pfcon.config.innetwork=false now because CUBE currently depends on pfcon configured in "innetwork" mode for storage.
+  - it: should not allow pfcon to be changed to not innetwork.
+    set:
+      pfcon.pfcon.config.innetwork: false
+    asserts:
+      - failedTemplate:
+          errorMessage: Cannot set pfcon.enabled=false and/or pfcon.pfcon.config.innetwork=false now because CUBE currently depends on pfcon configured in "innetwork" mode for storage.
