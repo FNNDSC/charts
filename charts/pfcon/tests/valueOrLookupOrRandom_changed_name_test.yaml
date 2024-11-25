@@ -1,0 +1,29 @@
+suite: util.valueOrLookupOrRandom subsequent run (with changed name)
+templates:
+  - pman-secrets.yml
+release:
+  name: subsequent-run-test
+  namespace: suruntest
+  revision: 2
+  upgrade: true
+kubernetesProvider:
+  scheme:
+    "v1/Secret":
+      gvr:
+        version: v1
+        resource: secrets
+      namespaced: true
+  objects:
+    - kind: Secret
+      apiVersion: v1
+      metadata:
+        name: subsequent-run-test-pman
+        namespace: suruntest
+      data:
+        NOT_SECRET_KEY: 'aWFtYm9sZAo='
+tests:
+  - it: should randomly generate a new secret because old secret does not contain the right key
+    asserts:
+      - matchRegex:
+          path: data.SECRET_KEY
+          pattern: ^[-A-Za-z0-9+/]{40,}={0,3}$

@@ -25,14 +25,14 @@ tests:
           value: '50505:303'
   - it: should allow CONTAINER_USER to be set when setSecurityContext is unset
     set:
-      pman.config.CONTAINER_USER: '20202:0'
+      pman.extraEnv.CONTAINER_USER: '20202:0'
     asserts:
       - equal:
           path: data.CONTAINER_USER
           value: '20202:0'
   - it: should allow CONTAINER_USER to be set when setSecurityContext=true
     set:
-      pman.config.CONTAINER_USER: '20202:0'
+      pman.extraEnv.CONTAINER_USER: '20202:0'
       pman.setSecurityContext: true
     asserts:
       - equal:
@@ -40,8 +40,8 @@ tests:
           value: '20202:0'
   - it: should disallow setting of CONTAINER_USER when setSecurityContext=false
     set:
-      pman.config.CONTAINER_USER: '20202:0'
+      pman.extraEnv.CONTAINER_USER: '20202:0'
       pman.setSecurityContext: false
     asserts:
       - failedTemplate:
-          errorMessage: Cannot set value for .Values.pman.config.CONTAINER_USER because .Values.pman.setSecurityContext=false.
+          errorMessage: Cannot set value for .Values.pman.extraEnv.CONTAINER_USER because .Values.pman.setSecurityContext=false.

@@ -7,10 +7,15 @@ sources:
 - https://github.com/FNNDSC/pfcon
 
 type: application
-version: "0.2.3"
+version: "1.0.0-alpha.1"
 appVersion: "5.2.3"
 
 maintainers:
 - name: The FNNDSC Dev Team
   email: dev@babyMRI.org
   url: https://fnndsc.org
+
+dependencies:
+- name: util
+  version: "~0.1.0"
+  repository: "https://fnndsc.github.io/charts"

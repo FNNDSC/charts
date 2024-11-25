@@ -24,8 +24,11 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ include "pfcon.serviceAccountName" . }}
+      {{- $podSecurityContext := merge .Values.podSecurityContext .Values.global.podSecurityContext }}
+      {{- with $podSecurityContext }}
       securityContext:
-        {{- toYaml .Values.global.podSecurityContext | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -34,7 +37,8 @@ spec:
         - name: pfcon
           image: "{{ .Values.pfcon.image.repository }}:{{ .Values.pfcon.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.pfcon.image.pullPolicy }}
-          command: ["gunicorn", "--bind", "0.0.0.0:5005", "--workers", "{{ .Values.pfcon.workers }}", "--timeout", "{{ .Values.pfcon.workerTimeout }}", "pfcon.wsgi:application"]
+          command: ["/entrypoint.sh"]
+          args: ["gunicorn", "-b", "0.0.0.0:{{ .Values.service.port }}", "pfcon.wsgi:application"]
           envFrom:
             - configMapRef:
                 name: {{ .Release.Name }}-pfcon
@@ -42,29 +46,40 @@ spec:
                 name: {{ .Release.Name }}-pfcon
           env:
             - name: COMPUTE_SERVICE_URL
-              # pman and pfcon are in the same pod
-              value: http://localhost:5010/api/v1/
+              value: http://localhost:{{ .Values.pman.containerPort }}/api/v1/
             - name: STOREBASE_MOUNT
               value: /var/local/storeBase
+            {{- range $k, $v := .Values.pfcon.extraEnv }}
+            - name: {{ $k }}
+              value: {{ $v | quote }}
+            {{- end }}
           volumeMounts:
             - mountPath: /var/local/storeBase
               name: storebase
           ports:
             - name: http
-              containerPort: 5005
+              containerPort: {{ .Values.service.port }}
               protocol: TCP
-          livenessProbe:
+              {{- if .Values.pfcon.hostPort }}
+              hostPort: {{ .Values.pfcon.hostPort }}
+              {{- end }}
+          readinessProbe:
             httpGet:
               path: /api/v1/health/
               port: http
-            initialDelaySeconds: 10
             periodSeconds: 3
+          {{- with .Values.pfcon.resources }}
           resources:
-            {{- toYaml .Values.pfcon.resources | nindent 12 }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.pfcon.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
         - name: pman
           image: "{{ .Values.pman.image.repository }}:{{ .Values.pman.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.pman.image.pullPolicy }}
-          command: ["gunicorn", "--bind", "0.0.0.0:5010", "--workers", "{{ .Values.pman.workers }}", "--timeout", "{{ .Values.pman.workerTimeout }}", "pman.wsgi:application"]
+          command: ["gunicorn", "-b", "0.0.0.0:{{ .Values.pman.containerPort }}", "pman.wsgi:application"]
           envFrom:
             - configMapRef:
                 name: {{ .Release.Name }}-pman
@@ -72,17 +87,30 @@ spec:
                 name: {{ .Release.Name }}-pman
           ports:
             - name: http
-              containerPort: 5010
+              containerPort: {{ .Values.pman.containerPort }}
               protocol: TCP
-          livenessProbe:
+              {{- if .Values.pfcon.hostPort }}
+              hostPort: {{ .Values.pfcon.hostPort }}
+              {{- end }}
+          readinessProbe:
             httpGet:
               path: /api/v1/
               port: http
-            initialDelaySeconds: 10
             periodSeconds: 3
+          {{- with .Values.pman.resources }}
           resources:
-            {{- toYaml .Values.pman.resources | nindent 12 }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.pman.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
       volumes:
         - name: storebase
           persistentVolumeClaim:
             claimName: {{ include "pfcon.storebase" . }}
+        {{- if .Values.pman.podman.enabled }}
+        - name: podman-socket
+          hostPath:
+            path: {{ .Values.pman.podman.socket | required ".Values.pman.podman.socket is required" }}
+        {{- end }}
