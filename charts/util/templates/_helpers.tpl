@@ -62,19 +62,19 @@ Create the name of the service account to use
 {{- end }}
 {{- end }}
 
-{{- define "util.image" }}
+{{- define "util.image" -}}
 {{ if .Values.image.registry }}{{ .Values.image.registry }}/{{ end }}{{ .Values.image.repository }}:{{ .Values.image.tag | default .appVersion | default .Chart.AppVersion }}
-{{- end }}
+{{- end -}}
 
-{{- define "util.podSpec" }}
-{{- with (concat .Values.imagePullSecrets .Values.global.imagePullSecrets | mustUniq) }}
+{{- define "util.podSpec" -}}
+{{- with (concat (.Values.imagePullSecrets | default (list)) ((.Values.global).imagePullSecrets | default (list)) | mustUniq) }}
 imagePullSecrets:
 {{- toYaml . | nindent 8 }}
 {{- end }}
 {{- if (or .Values.serviceAccount.name .Values.serviceAccount.create) }}
 serviceAccountName: {{ include "util.util.serviceAccountName" . }}
 {{- end }}
-{{- with (.Values.podSecurityContext | deepCopy | mustMergeOverwrite (deepCopy .Values.global.podSecurityContext | default (dict))) }}
+{{- with (.Values.podSecurityContext | deepCopy | mustMergeOverwrite (deepCopy ((.Values.global).podSecurityContext | default (dict)))) }}
 securityContext:
 {{- toYaml . | nindent 8 }}
 {{- end }}
@@ -90,20 +90,25 @@ affinity:
 tolerations:
 {{- toYaml . | nindent 8 }}
 {{- end }}
-{{- end }}
+{{- end -}}
 
-{{- define "util.container" }}
+{{- define "util.container" -}}
 - image: {{ include "util.image" . }}
+  {{- if .containerName }}
+  name: {{ .containerName }}
+  {{- end }}
   {{- if .Values.image.pullPolicy }}
   imagePullPolicy: {{ .Values.image.pullPolicy }}
   {{- end }}
   ports:
-    - name: http
-      containerPort: {{ .Values.containerPort | default .Values.service.port }}
+    - containerPort: {{ .Values.containerPort | default .Values.service.port }}
       {{- if .Values.hostPort }}
       hostPort: {{ .Values.hostPort }}
       {{- end }}
       protocol: TCP
+      {{- if .portName }}
+      name: {{ .portName }}
+      {{- end }}
   {{- if .Values.extraEnv }}
   env:
     {{- range $k, $v := .Values.extraEnv }}
@@ -113,22 +118,22 @@ tolerations:
   {{- end }}
   {{- with .Values.securityContext }}
   securityContext:
-    {{- toYaml . | nindent 12 }}
+    {{- toYaml . | nindent 4 }}
   {{- end }}
   {{- with .Values.resources }}
   resources:
-    {{- toYaml . | nindent 12 }}
+    {{- toYaml . | nindent 4 }}
   {{- end }}
   {{- with .Values.livenessProbe }}
   livenessProbe:
-    {{- toYaml . | nindent 12 }}
+    {{- toYaml . | nindent 4 }}
   {{- end }}
   {{- with .Values.readinessProbe }}
   readinessProbe:
-    {{- toYaml . | nindent 12 }}
+    {{- toYaml . | nindent 4 }}
   {{- end }}
   {{- with .Values.startupProbe }}
   startupProbe:
-    {{- toYaml . | nindent 12 }}
+    {{- toYaml . | nindent 4 }}
   {{- end }}
-{{- end }}
+{{- end -}}
