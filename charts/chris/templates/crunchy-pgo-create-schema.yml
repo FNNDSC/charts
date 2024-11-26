@@ -28,7 +28,7 @@ spec:
           command:
             - psql
             - -c
-            - CREATE SCHEMA AUTHORIZATION $(USERNAME)
+            - CREATE SCHEMA IF NOT EXISTS AUTHORIZATION $(USERNAME)
             - $(URI)
           env:
             - name: USERNAME
