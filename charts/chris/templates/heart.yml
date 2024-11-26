@@ -36,10 +36,23 @@ spec:
           command:
             - /bin/sh
             - -c
-            - until pg_isready -U "$username" -h $host -p $port; do sleep 1; done
-          envFrom:
-            - secretRef:
-                name: {{ .Release.Name }}-postgresql-svcbind-custom-user
+            - until pg_isready -U "$USERNAME" -h $HOST -p $PORT; do sleep 1; done
+          env:
+            - name: USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "cube.db.secret" . }}
+                  key: {{ include "chris.db.secretItemKey" (dict "Values" .Values "name" "username" "crunchyName" "user") }}
+            - name: HOST
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "cube.db.secret" . }}
+                  key: {{ include "chris.db.secretItemKey" (dict "Values" .Values "name" "host" "crunchyName" "host") }}
+            - name: PORT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "cube.db.secret" . }}
+                  key: {{ include "chris.db.secretItemKey" (dict "Values" .Values "name" "port" "crunchyName" "port") }}
         - name: migratedb
           command: ["python", "manage.py", "migrate", "--noinput"]
           {{- include "cube.container" . | nindent 10 }}

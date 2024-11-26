@@ -68,11 +68,11 @@ envFrom:
       name: {{ .Release.Name }}-chris-backend
 env:
   {{- $dbenvs := (dict
-    "POSTGRES_DB" .Values.postgresSecret.keys.database
-    "POSTGRES_USER" .Values.postgresSecret.keys.username
-    "POSTGRES_PASSWORD" .Values.postgresSecret.keys.password
-    "DATABASE_HOST" .Values.postgresSecret.keys.host
-    "DATABASE_PORT" .Values.postgresSecret.keys.port
+    "POSTGRES_DB"       (include "chris.db.secretItemKey" (dict "Values" .Values "name" "database" "crunchyName" "dbname"))
+    "POSTGRES_USER"     (include "chris.db.secretItemKey" (dict "Values" .Values "name" "username" "crunchyName" "user"))
+    "POSTGRES_PASSWORD" (include "chris.db.secretItemKey" (dict "Values" .Values "name" "password" "crunchyName" "password"))
+    "DATABASE_HOST"     (include "chris.db.secretItemKey" (dict "Values" .Values "name" "host"     "crunchyName" "host"))
+    "DATABASE_PORT"     (include "chris.db.secretItemKey" (dict "Values" .Values "name" "port"     "crunchyName" "port"))
   ) }}
   {{- $secretName := include "cube.db.secret" . }}
   {{- range $name, $key := $dbenvs }}
@@ -96,6 +96,11 @@ env:
   {{- end }}
 {{- end }}
 
+{{- /* Helper function to get the name of an item of a key. If unspecified in Values, use a default name
+       where the default may be different for Crunchy PGO. */}}
+{{- define "chris.db.secretItemKey" }}
+{{- get .Values.postgresSecret.keys .name | default (ternary .crunchyName .name .Values.postgresSecret.isCrunchy) -}}
+{{- end }}
 
 {{- define "cube.pod" -}}
 volumes:

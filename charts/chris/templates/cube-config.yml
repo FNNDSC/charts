@@ -1,6 +1,6 @@
 ---
 {{- $unchangableKeys := list "DJANGO_SETTINGS_MODULE" "STORAGE_ENV" "MEDIA_ROOT" "NATS_ADDRESS" "POSTGRES_DB" "POSTGRES_USER" "POSTGRES_PASSWORD" }}
-{{- $sensitiveKeys := list "DJANGO_SECRET_KEY" "AUTH_LDAP_BIND_PASSWORD" }}
+{{- $sensitiveKeys := list "DJANGO_SECRET_KEY" "AUTH_LDAP_BIND_PASSWORD" "CHRIS_SUPERUSER_PASSWORD" }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -12,9 +12,6 @@ metadata:
     kubernetes.io/description: "Configuration of ChRIS backend"
 data:
   {{- with .Values.cube.config }}
-    {{- if (hasKey . "CHRIS_SUPERUSER_PASSWORD" )}}
-      {{- fail "Do not set .Values.cube.config.CHRIS_SUPERUSER_PASSWORD. Use .Values.chrisAdmin.password instead." }}
-    {{- end }}
     {{- $config := . }}
     {{- range $sensitiveKey := $sensitiveKeys }}
       {{- if (hasKey $config $sensitiveKey) }}
@@ -26,7 +23,7 @@ data:
         {{- fail (printf ".Values.cube.config.%s must not be set." $unchangableKey) }}
       {{- end }}
     {{- end }}
-    {{- toYaml . | nindent 2 }}
+    {{- toYaml $config | nindent 2 }}
   {{- end }}
   NATS_ADDRESS: {{ include "chris.nats.address" . | quote }}
   DJANGO_SETTINGS_MODULE: 'config.settings.production'
@@ -48,8 +45,8 @@ metadata:
   labels:
     {{- include "cube.labels" . | nindent 4 }}
 data:
-  DJANGO_SECRET_KEY: {{ include "valueOrLookupOrRandom" (dict "root" . "value" .Values.cube.secrets.DJANGO_SECRET_KEY "secret" $cubeSecret "name" "DJANGO_SECRET_KEY" "length" 32 ) }}
-  CHRIS_SUPERUSER_PASSWORD: {{ include "valueOrLookupOrRandom" (dict "root" . "value" .Values.cube.secrets.CHRIS_SUPERUSER_PASSWORD "secret" $cubeSecret "name" "CHRIS_SUPERUSER_PASSWORD" "length" 16 ) }}
+  DJANGO_SECRET_KEY: {{ include "util.valueOrLookupOrRandom" (dict "root" . "value" .Values.cube.secrets.DJANGO_SECRET_KEY "secret" $cubeSecret "name" "DJANGO_SECRET_KEY" "length" 32) }}
+  CHRIS_SUPERUSER_PASSWORD: {{ include "util.valueOrLookupOrRandom" (dict "root" . "value" .Values.cube.secrets.CHRIS_SUPERUSER_PASSWORD "secret" $cubeSecret "name" "CHRIS_SUPERUSER_PASSWORD" "length" 16) }}
   {{- with .Values.cube.secrets }}
   {{- $secrets := . }}
   {{- range $unchangableKey := $unchangableKeys }}

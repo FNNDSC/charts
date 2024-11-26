@@ -63,7 +63,7 @@ cube:
   # -- The default behavior is to use the release name as the job prefix.
   jobPrefix:
 
-  # -- CUBE configuration
+  # -- CUBE configuration. N.B.: values must be strings.
   config:
     # -- Event polling frequency. Smaller value increases responsiveness at the cost of increased resource
     # -- usage and possible concurrency bugs.
@@ -77,7 +77,7 @@ cube:
     DJANGO_USE_X_FORWARDED_HOST: "false"
 
     # -- Enable LDAP authentication
-    AUTH_LDAP: false
+    AUTH_LDAP: "false"
     # AUTH_LDAP_SERVER_URI: "ldap://192.168.0.29:389"
     # AUTH_LDAP_BIND_DN: "cn=admin,dc=fnndsc,dc=org"
     # AUTH_LDAP_USER_SEARCH_ROOT: "dc=fnndsc,dc=org"
@@ -88,12 +88,15 @@ cube:
     # -- If `true`, user accounts can only be created manually or
     # -- via SSO (LDAP, ...)
     # -- A value of `false` would allow anyone to create an account.
-    DISABLE_USER_ACCOUNT_CREATION: true
+    DISABLE_USER_ACCOUNT_CREATION: "true"
 
   # -- Additional secret environment variables for CUBE.
   # -- Note: if `SECRET_KEY` is unset, its previous value will be looked up,
   # -- or a random value will be generated for you.
-  secrets: {}
+  secrets:
+    # -- password of the superuser+admin "chris" user account.
+    # -- If unset, the previously set value will be used, or a random value will be generated.
+    CHRIS_SUPERUSER_PASSWORD: ""
     # AUTH_LDAP_BIND_PASSWORD: "admin1234"
     # SECRET_KEY: supersecretkey  # https://docs.djangoproject.com/en/5.1/ref/settings/#secret-key
 
@@ -192,19 +195,24 @@ postgresSecret:
   # -- Name of existing secret for the postgres connection parameters.
   # -- Required if `postgres.enabled=false`.
   name:
+  # -- Indicate whether the database is a Crunchy Postgres for Kubernetes PostgresCluster.
+  isCrunchy: false
+  # -- Names of items in the secret.
+  # -- If `postgresql.enabled=true` or `postgresSecret.isCrunchy=true` then well-known values
+  # -- will be used for `postgresSecret.keys.*` and there is no need to customize this section.
   keys:
     # -- Name of the key for the postgres host value.
-    host: 'host'
+    host:
     # -- Name of the key for the postgres port value.
-    port: 'port'
+    port:
     # -- Name of the key for the postgres database value.
-    database: 'database'
+    database:
     # -- Name of the key for the postgres username value.
-    username: 'username'
+    username:
     # -- Name of the key for the postgres password value.
-    password: 'password'
+    password:
     # -- Name of the key for the postgres uri value.
-    uri: 'uri'
+    uri:
 
 # -- [SUBCHART] PostgreSQL packaged by Bitnami
 # -- https://github.com/bitnami/charts/tree/main/bitnami/postgresql#parameters
