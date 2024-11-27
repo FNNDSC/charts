@@ -1,0 +1,77 @@
+suite: pfdcm address
+release:
+  name: tpaddy
+  namespace: ns
+templates:
+  - cube-config.yml
+tests:
+  - it: should be a dummy value (http://localhost) if pfdcm is not enabled
+    set:
+      pfdcm.enabled: false
+    documentSelector:
+      path: kind
+      value: ConfigMap
+    asserts:
+      - equal:
+          path: data.PFDCM_ADDRESS
+          value: http://localhost
+  - it: should be pfdcm's service
+    set:
+      pfdcm.enabled: true
+    documentSelector:
+      path: kind
+      value: ConfigMap
+    asserts:
+      - equal:
+          path: data.PFDCM_ADDRESS
+          value: http://tpaddy-chris-pfdcm:4005
+  - it: should be pfdcm's knative qualified domain name
+    set:
+      pfdcm.enabled: true
+      pfdcm.kind: Service
+    documentSelector:
+      path: kind
+      value: ConfigMap
+    asserts:
+      - equal:
+          path: data.PFDCM_ADDRESS
+          value: http://tpaddy-chris-pfdcm.ns.svc
+  - it: should be able to set a custom value using cube.config
+    set:
+      pfdcm.enabled: true
+      cube.config.PFDCM_ADDRESS: http://manual.value
+    documentSelector:
+      path: kind
+      value: ConfigMap
+    asserts:
+      - equal:
+          path: data.PFDCM_ADDRESS
+          value: http://manual.value
+  - it: should be able to set a value when pfdcm not enabled
+    set:
+      pfdcm.enabled: false
+      cube.config.PFDCM_ADDRESS: http://manual.value
+    documentSelector:
+      path: kind
+      value: ConfigMap
+    asserts:
+      - equal:
+          path: data.PFDCM_ADDRESS
+          value: http://manual.value
+  - it: should be able to set a custom value using cube.secrets
+    set:
+      pfdcm.enabled: true
+      cube.secrets.PFDCM_ADDRESS: http://manual.value
+    asserts:
+      - notExists:
+          path: data.PFDCM_ADDRESS
+        documentSelector:
+          path: kind
+          value: ConfigMap
+      - equal:
+          path: data.PFDCM_ADDRESS
+          value: http://manual.value
+          decodeBase64: true
+        documentSelector:
+          path: kind
+          value: Secret

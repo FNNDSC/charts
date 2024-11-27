@@ -75,10 +75,12 @@ pfdcm stuff
 */}}
 
 {{- define "chris.pfdcmInternalAddress" -}}
-{{- if (not (and .Values.pfdcm.enabled .Values.pfdcm.service.enabled)) -}}
+{{- if (not (and .Values.pfdcm.enabled)) -}}
 http://localhost
+{{- else if (eq .Values.pfdcm.kind "Deployment") -}}
+http://{{ include "pfdcm.fullname" . }}:{{ .Values.pfdcm.service.port }}
 {{- else -}}
-http://{{ .Values.pfdcm.service }}-pfdcm:{{ .Values.pfdcm.service.port }}
+http://{{ include "pfdcm.fullname" . }}.{{ .Release.Namespace }}.svc
 {{- end -}}
 {{- end -}}
 

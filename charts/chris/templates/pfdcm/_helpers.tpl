@@ -1,14 +1,14 @@
 {{- define "pfdcm.name" -}}
-{{- default .Values.pfdcm.nameOverride "pfdcm-chris" | trunc 63 | trimSuffix "-" -}}
+{{- default .Values.pfdcm.nameOverride "chris-pfdcm" | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
 {{- define "pfdcm.fullname" -}}
-{{- (dict
+{{- mustMerge (dict
   "Values" (dict
     "nameOverride" (include "pfdcm.name" .)
     "fullnameOverride" .Values.pfdcm.fullnameOverride
   )
-) | mustMerge (omit . "Values") | include "util.fullname" -}}
+) (omit . "Values") | include "util.fullname" -}}
 {{- end -}}
 
 {{- define "pfdcm.volumes" -}}
