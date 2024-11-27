@@ -1,3 +1,21 @@
+{{- define "util.testConnectionHost" -}}
+{{- if .Values.route.enabled -}}
+{{- .Values.route.host | required "route.host is required because route.enabled=true" -}}
+{{- else if .Values.ingress.enabled -}}
+{{- (first .Values.ingress.hosts).host | required "ingress.hosts[0].host is required because ingress.enabled=true" -}}
+{{- else -}}
+{{- include "util.fullname" . }}:{{ .Values.service.port }}
+{{- end -}}
+{{- end -}}
+{{- define "util.testConnectionScheme" -}}
+{{- if (or (and .Values.ingress.enabled .Values.ingress.tls)
+           (and .Values.route.enabled   .Values.route.tls)) -}}
+https
+{{- else -}}
+http
+{{- end -}}
+{{- end -}}
+
 {{- define "util.testServiceConnectionTpl" }}
 apiVersion: v1
 kind: Pod
@@ -14,6 +32,6 @@ spec:
       command: ['wget']
       args:
         - --spider
-        - http://{{ include "util.fullname" . }}:{{ .Values.service.port }}{{ (.Values.test).path }}
+        - {{ include "util.testConnectionScheme" . }}://{{ include "util.testConnectionHost" . }}{{ (.Values.test).path }}
   restartPolicy: Never
 {{- end }}
