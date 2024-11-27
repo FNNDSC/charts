@@ -1,0 +1,18 @@
+{{- $env := (dict
+  "SERVER_PORT" .Values.service.port
+  "CHRIS_UI_URL" (.Values.cubeUrl | required "cubeUrl is required")
+  "PFDCM_URL" (.Values.pfdcmUrl | required "pfdcmUrl is required")
+) -}}
+{{- $optionalEnvNames := (dict
+  "ohifUrl" "OHIF_URL"
+  "ackeeServer" "ACKEE_SERVER"
+  "ackeeDomainId" "ACKEE_DOMAIN_ID"
+) -}}
+{{- range $k, $v := $optionalEnvNames -}}
+  {{- $value := (get $.Values $k) -}}
+  {{- with (get $.Values $k) -}}
+    {{- $_ := set $env $v . -}}
+  {{- end -}}
+{{- end -}}
+{{- $moreValues := (dict "Values" (dict "extraEnv" $env)) -}}
+{{- mustMerge $moreValues . | include "util.knativeOrDeployment" -}}
