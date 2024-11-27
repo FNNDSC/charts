@@ -1306,6 +1306,36 @@ entries:
     urls:
     - https://github.com/FNNDSC/charts/releases/download/chris-0.0.1/chris-0.0.1.tgz
     version: 0.0.1
+  chris-ui:
+  - apiVersion: v2
+    appVersion: 36f2dcb
+    created: "2024-11-27T00:21:50.137047023Z"
+    dependencies:
+    - name: util
+      repository: https://fnndsc.github.io/charts
+      version: 0.2.0
+    description: ChRIS user interface
+    digest: b95c841e0db40c9e57f1084d1ad53124136353b030321ba1434e1be316bea921
+    home: https://chrisproject.org
+    icon: ./logo_chris.png
+    keywords:
+    - medicine
+    - science
+    - bioinformatics
+    - neuroscience
+    - scientific workflow system
+    maintainers:
+    - email: dev@babyMRI.org
+      name: The FNNDSC Dev Team
+      url: https://fnndsc.org
+    name: chris-ui
+    sources:
+    - https://github.com/FNNDSC/charts
+    - https://github.com/FNNDSC/ChRIS_ui
+    type: application
+    urls:
+    - https://github.com/FNNDSC/charts/releases/download/chris-ui-1.0.0-alpha.1/chris-ui-1.0.0-alpha.1.tgz
+    version: 1.0.0-alpha.1
   linkerd-nodeport-workaround:
   - apiVersion: v2
     appVersion: 2.9.7
@@ -1740,4 +1770,4 @@ entries:
     urls:
     - https://github.com/FNNDSC/charts/releases/download/util-0.1.0/util-0.1.0.tgz
     version: 0.1.0
-generated: "2024-11-27T00:17:04.44708245Z"
+generated: "2024-11-27T00:21:50.137240384Z"
