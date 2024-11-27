@@ -74,6 +74,14 @@ pfdcm stuff
 --------------------------------------------------------------------------------
 */}}
 
+{{- define "chris.pfdcmInternalAddress" -}}
+{{- if (not (and .Values.pfdcm.enabled .Values.pfdcm.service.enabled)) -}}
+http://localhost
+{{- else -}}
+http://{{ .Values.pfdcm.service }}-pfdcm:{{ .Values.pfdcm.service.port }}
+{{- end -}}
+{{- end -}}
+
 {{- define "pfdcm.version" -}}
 {{ .Values.pfdcm.image.tag }}
 {{- end }}

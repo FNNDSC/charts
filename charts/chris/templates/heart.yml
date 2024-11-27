@@ -135,7 +135,15 @@ spec:
               memory: 512Mi
               cpu: 100m
         - name: server-private
-          command: ["daphne", "-b", "0.0.0.0", "-p", "{{ include "chris.heart.port" . }}", "config.asgi:application"]
+          command:
+            - granian
+            - --host=0.0.0.0
+            - --port={{ include "chris.heart.port" . }}
+            - --workers=1
+            - --threads=1
+            - --blocking-threads=1
+            - --threading-mode=workers
+            - 'config.asgi:application'
           {{- include "cube.container" . | nindent 10 }}
           ports:
             - name: http

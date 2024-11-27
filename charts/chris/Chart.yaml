@@ -18,7 +18,7 @@ icon: ./logo_chris.png
 
 type: application
 version: "1.0.0-alpha.1"
-appVersion: "6.3.0-beta.1"
+appVersion: "6.3.0-beta.6"
 
 maintainers:
 - name: The FNNDSC Dev Team

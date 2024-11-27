@@ -1,4 +1,4 @@
----
+
 {{- $unchangableKeys := list "DJANGO_SETTINGS_MODULE" "STORAGE_ENV" "MEDIA_ROOT" "NATS_ADDRESS" "POSTGRES_DB" "POSTGRES_USER" "POSTGRES_PASSWORD" }}
 {{- $sensitiveKeys := list "DJANGO_SECRET_KEY" "AUTH_LDAP_BIND_PASSWORD" "CHRIS_SUPERUSER_PASSWORD" }}
 apiVersion: v1
@@ -31,6 +31,9 @@ data:
   MEDIA_ROOT: '/data'
   {{- if (not (hasKey (merge .Values.cube.config .Values.cube.secrets) "CHRIS_STORE_URL")) }}
   CHRIS_STORE_URL: 'https://cube.chrisproject.org/api/v1/'
+  {{- end }}
+  {{- if (not (hasKey (merge .Values.cube.config .Values.cube.secrets) "PFDCM_ADDRESS")) }}
+  PFDCM_ADDRESS: {{ include "chris.pfdcmInternalAddress" . | quote }}
   {{- end }}
 
 ---
