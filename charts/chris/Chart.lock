@@ -16,6 +16,6 @@ dependencies:
   version: 1.2.1
 - name: util
   repository: https://fnndsc.github.io/charts
-  version: 0.2.0
-digest: sha256:c236cacc7bf4a0cc08d813db9468453591e70e55356fde2353b071eeab3848a9
-generated: "2024-11-26T19:18:09.365869784-05:00"
+  version: 0.2.1
+digest: sha256:ddb0a0ddb7eefa4f129e92cbe4c0eafaf49213a185ce422412be49177f564a0d
+generated: "2024-11-27T01:06:55.210808071-05:00"
