@@ -1723,6 +1723,15 @@ entries:
     version: 0.0.1
   util:
   - apiVersion: v2
+    created: "2024-11-27T00:17:04.446918242Z"
+    description: Library chart providing helper functions for FNNDSC Helm charts
+    digest: d058d5756c6db6f6391a90e3bee74d2f93e1944f2c7e2db6b431f2d8b7f339cb
+    name: util
+    type: library
+    urls:
+    - https://github.com/FNNDSC/charts/releases/download/util-0.2.0/util-0.2.0.tgz
+    version: 0.2.0
+  - apiVersion: v2
     created: "2024-11-23T07:43:14.437225937Z"
     description: Library chart providing helper functions for FNNDSC Helm charts
     digest: 2c038a9a566115747ec566f29d33b4ed228c8b4b2ab27caad1615d3d9605bc68
@@ -1731,4 +1740,4 @@ entries:
     urls:
     - https://github.com/FNNDSC/charts/releases/download/util-0.1.0/util-0.1.0.tgz
     version: 0.1.0
-generated: "2024-11-25T15:00:37.804414917Z"
+generated: "2024-11-27T00:17:04.44708245Z"
