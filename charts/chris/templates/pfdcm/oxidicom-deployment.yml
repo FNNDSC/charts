@@ -5,7 +5,6 @@ metadata:
   name: {{ .Release.Name }}-oxidicom
   namespace: {{ .Release.Namespace }}
   labels:
-    app.kubernetes.io/name: oxidicom
     {{- include "pfdcm.listenerLabels" . | nindent 4 }}
   annotations:
     kubernetes.io/description: "ChRIS DICOM receiver"
@@ -22,7 +21,6 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        app.kubernetes.io/name: oxidicom
         {{- include "pfdcm.listenerLabels" . | nindent 8 }}
     spec:
       {{- with .Values.imagePullSecrets }}

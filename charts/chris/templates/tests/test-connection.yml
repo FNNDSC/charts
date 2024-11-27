@@ -12,6 +12,7 @@ metadata:
 
 spec:
   restartPolicy: Never
+  {{- /* TODO create user in initContainer */}}
   containers:
     - name: create-user-test
       image: ghcr.io/fnndsc/aiochris:0.10.0
@@ -33,13 +34,13 @@ spec:
           data = b'Some random data appears on the next line.\n{{ randAlphaNum 64 }}\n'
 
           async def main():
+              {{- /* TODO count number of plugins */}}
               created_user = await ChrisClient.create_user(url, username, password, email)
               logging.info(f'created user {created_user}')
               chris = await ChrisClient.from_login(url, username, password)
 
               file = Path('/tmp/data.txt')
               file.write_bytes(data)
-              # TODO FIX ME
               uploaded_file = await chris.upload_file(file, 'helm-test/data.txt')
               logging.info(f'uploaded file {uploaded_file.url}')
 

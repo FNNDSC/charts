@@ -82,26 +82,3 @@ http://{{ .Values.pfdcm.service }}-pfdcm:{{ .Values.pfdcm.service.port }}
 {{- end -}}
 {{- end -}}
 
-{{- define "pfdcm.version" -}}
-{{ .Values.pfdcm.image.tag }}
-{{- end }}
-{{- define "pfdcm.listenerVersion" -}}
-{{ .Values.pfdcm.listener.image.tag }}
-{{- end }}
-{{- define "pfdcm.labels" -}}
-{{ include "chris.labels" . }}
-app.kubernetes.io/instance: {{ .Release.Name }}
-app.kubernetes.io/version: {{ include "pfdcm.version" . | quote }}
-app.kubernetes.io/component: pfdcm
-{{- end }}
-{{- define "pfdcm.listenerLabels" -}}
-{{ include "chris.labels" . }}
-app.kubernetes.io/instance: {{ .Release.Name }}
-app.kubernetes.io/version: {{ include "pfdcm.listenerVersion" . | quote }}
-app.kubernetes.io/component: backend
-{{- end }}
-
-{{- define "pfdcm.listenerService" -}}
-{{ .Release.Name }}-oxidicom
-{{- end -}}
-

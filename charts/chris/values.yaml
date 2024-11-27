@@ -20,6 +20,11 @@ global:
   #     # optional, adapt security context of Bitnami subcharts for OpenShift compatibility
   #     adaptSecurityContext: auto
 
+  # -- Image pull secrets.
+  # -- Ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+  imagePullSecrets: []
+    # - name: my-dockerhub-login
+
 
 # -- Ingress
 ingress:
@@ -139,11 +144,11 @@ cube:
     # -- This is because of inefficient implementation, see https://github.com/FNNDSC/ChRIS_ultron_backEnd/issues/377
     resources:
       requests:
-        memory: 4Gi
-        cpu: 1
+        memory: 2Gi
+        cpu: 500m
       limits:
-        memory: 4Gi
-        cpu: 1
+        memory: 2Gi
+        cpu: 500m
 
   # -- Periodic celery worker configuration.
   workerPeriodic:
@@ -180,10 +185,10 @@ cube:
     resources:
       requests:
         memory: 2Gi
-        cpu: 1
+        cpu: 500m
       limits:
         memory: 2Gi
-        cpu: 1
+        cpu: 500m
 
     # -- CUBE server container hostPort.
     hostPort:
@@ -243,13 +248,13 @@ postgresql:
     # -- none, nano, micro, small, medium, large, xlarge, 2xlarge). This is ignored
     # -- if primary.resources is set (primary.resources is recommended for production).
     # -- see https://github.com/bitnami/charts/blob/973a2792e0bc5967e3180c6d44eebf223b9f1d83/bitnami/common/templates/_resources.tpl#L15-L43
-    resourcesPreset: large
+    resourcesPreset: small
     # -- Set container requests and limits for different resources like CPU or memory
     # -- (essential for production workloads)
     resources: {}
     persistence:
       enabled: true
-      size: 4Gi
+      size: 1Gi
 
   # Defer control of security configurations to OpenShift
   volumePermissions:
@@ -261,6 +266,10 @@ postgresql:
   # -- Ref: https://servicebinding.io/service-provider/
   serviceBindings:
     enabled: true  # required
+
+  # -- Add labels to all the deployed resources
+  commonLabels:
+    app.kubernetes.io/part-of: chris
 
 # -- [SUBCHART] RabbitMQ packaged by Bitnami
 # -- https://github.com/bitnami/charts/tree/main/bitnami/rabbitmq#parameters
@@ -286,6 +295,10 @@ rabbitmq:
   # -- like CPU or memory (essential for production workloads)
   resources: {}
 
+  # -- Labels to add to all deployed objects
+  commonLabels:
+    app.kubernetes.io/part-of: chris
+
 # -- Configuration of NATS, a messaging system. In ChRIS, NATS is used for PACS retrieve
 # -- progress messages sent from oxidicom to CUBE.
 # -- Documentation: https://github.com/bitnami/charts/tree/nats/8.4.3/bitnami/nats
@@ -294,7 +307,8 @@ nats:
   # -- nano, micro, small, medium, large, xlarge, 2xlarge). This is ignored if
   # -- resources is set (resources is recommended for production).
   resourcesPreset: small
-  podLabels:
+  # -- Add labels to all the deployed resources
+  commonLabels:
     app.kubernetes.io/part-of: chris
   auth:
     # -- CUBE does not support NATS authorization
@@ -331,7 +345,7 @@ pfcon:
         memory: 1Gi
       requests:
         cpu: 500m
-        memory: 384Mi
+        memory: 512Mi
 
     # -- pfcon configuration
     # -- Recommended to keep as-is
@@ -352,7 +366,7 @@ pfcon:
         memory: 1Gi
       requests:
         cpu: 500m
-        memory: 1Gi
+        memory: 512Mi
 
     workers: 4
     workerTimeout: 30
@@ -372,56 +386,46 @@ pfcon:
     # -- Default behavior is to detect whether on OpenShift: if so, set as false, true otherwise.
     setSecurityContext: true
 
-
-# -- Configuration of PFDCM, the ChRIS PACS interface
+# -- Configuration of PFDCM, the ChRIS PACS bridge
 pfdcm:
+  # -- Enable PFDCM, the ChRIS PACS bridge
   enabled: false
+
+  # -- String to partially override the names template
+  nameOverride: ""
+  # -- String to fully override the names template
+  fullnameOverride: ""
+
+  # -- Image for PFDCM
   image:
     repository: ghcr.io/fnndsc/pfdcm
     pullPolicy: IfNotPresent
     tag: "3.1.22"
-  podAnnotations: {}
-  service:
-    enabled: true
-    type: ClusterIP
-    port: 4005
-    # nodePort:
-  # -- OpenShift route configuration
-  route:
-    enabled: false
-    host: chart-example.local
-    tls:
-      termination: edge
-      insecureEdgeTerminationPolicy: Redirect
-      destinationCACertificate: ''
-  replicas: 1
-  maxWorkers: 8
-  resources:
-    limits:
-      cpu: 1
-      memory: 4Gi
-    requests:
-      cpu: 1
-      memory: 4Gi
 
-  # DICOM application entity title
+  imagePullSecrets: []
+
+  # -- DICOM application entity title
   aet: "ChRIS"
 
-  # Additional pfdcm configuration. Usually, you'll want to leave this empty.
-  # pfdcm will be preconfigured with the CUBE and Orthanc of this chart.
-  # If this pfdcm interacts with multiple CUBEs or multiple PACS servers,
-  # add them here.
+  # -- Additional PFDCM configuration. Usually, you don't need to change this.
   additionalConfig:
+    # -- Deprecated configuration of ChRIS backends.
     cube: {}
       # local:
       #   url: https://cube.example.org/api/v1/
       #   username: pfdcm
       #   password: pfdcm1234
+    # -- Deprecated configuration of storage.
     storage: {}
       # local:
       #   storagetype: fs
       #   storepath: /files
+    # -- Configuration of PACS.
     pacs:
+      # -- Configuration of PACS services PFDCM can talk with.
+      # -- If the Orthanc subchart below is enabled, the correct values for
+      # -- it will be automatically filled in. If PFDCM need to speak with
+      # -- other PACS outside of this chart, add them here.
       services: {}
         # orthanc:
         #   info:
@@ -431,12 +435,146 @@ pfdcm:
         #     serverIP: orthanc
         #     serverPort: 4242
 
-  # DICOM listener for pfdcm. Enabled when pfdcm is enabled.
+  podAnnotations: {}
+  podLabels: {}
+
+  podSecurityContext: {}
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+      - ALL
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+
+  # -- Extra environment variables for the PFDCM container.
+  # -- Note: PORT is configured automatically, it is not recommended to set it manually.
+  extraEnv:
+    # -- Maximum number of web server workers. Strongly encouraged to increase this value.
+    MAX_WORKERS: 2
+
+  # -- Resources configuration for pfdcm. Strongly encouraged to increase these values.
+  resources:
+    limits:
+      cpu: 250m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+
+  hostPort:
+  
+  readinessProbe: {}
+
+  livenessProbe: {}
+    # httpGet:
+    #   path: /api/v1/about/
+    #   port: http
+    # initialDelaySeconds: 10
+    # periodSeconds: 10
+    # timeoutSeconds: 5
+    # failureThreshold: 3
+
+  startupProbe: {}
+
+  nodeSelector: {}
+
+  tolerations: []
+
+  affinity: {}
+
+  # -- Labels for the Deployment/Service resource.
+  labels: {}
+
+  # -- Annotations for the Deployment/Service resource.
+  annotations: {}
+
+  # Kind configuration
+  #####################
+  # -- kind must be one of:
+  # --
+  # -- - "Deployment": use (standard) Kubernetes Deployment and Service APIs
+  # -- - "Service": use the KNative Serving API
+  kind: Deployment
+
+  # KNative Serving configuration
+  #####################
+  # -- KNative Serving revision annotations.
+  # -- Only used with `pfdcm.kind=Service`
+  revisionAnnotations: {}
+    # autoscaling.knative.dev/target: "100"
+    # autoscaling.knative.dev/min-scale: "1"
+    # autoscaling.knative.dev/max-scale: "3"
+    # autoscaling.knative.dev/scale-to-zero-pod-retention-period: "1m5s"
+
+  # Deployment configuration
+  #####################
+
+  # -- This will set the replicaset count more information can be found here: https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/
+  # -- Ignored if `autoscaling.enabled=true`
+  # -- Only used with `pfdcm.kind=Deployment`
+  replicaCount: 1
+
+  # -- This is for setting up a service more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/
+  # -- Only used with `pfdcm.kind=Deployment`
+  service:
+    # This sets the service type more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
+    type: ClusterIP
+    # This sets the ports more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#field-spec-ports
+    port: 4005
+    # nodePort:
+    annotations:
+      kubernetes.io/description: PFDCM API. Swagger docs available on /docs
+
+  # -- This block is for setting up the ingress for more information can be found here: https://kubernetes.io/docs/concepts/services-networking/ingress/
+  # -- Only used with `pfdcm.kind=Deployment`
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+      # kubernetes.io/ingress.class: nginx
+      # kubernetes.io/tls-acme: "true"
+    hosts:
+      - host: chart-example.local
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+    tls: []
+    #  - secretName: chart-example-tls
+    #    hosts:
+    #      - chart-example.local
+
+  # -- OpenShift route.
+  # -- Only used with `pfdcm.kind=Deployment`
+  route:
+    enabled: false
+    host: chart-example.local
+    tls:
+      termination: edge
+      insecureEdgeTerminationPolicy: Redirect
+      destinationCACertificate: ''
+
+  # -- Helm test configuration
+  test:
+    # -- Path to test for connectivity
+    path: '/api/v1/hello/'
+
+  # -- This section is for setting up autoscaling more information can be found here: https://kubernetes.io/docs/concepts/workloads/autoscaling/
+  # -- Only used with `pfdcm.kind=Deployment`
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 100
+    targetCPUUtilizationPercentage: 80
+    # targetMemoryUtilizationPercentage: 80
+
+  # -- DICOM listener for pfdcm. Enabled when pfdcm is enabled.
   listener:
     image:
       repository: ghcr.io/fnndsc/oxidicom
       pullPolicy: Always
-      tag: "pr-3"
+      tag: "pr-3"  # pre-alpha, has known bugs.
     podAnnotations: {}
     # -- (optional) hostPort for DICOM listener
     hostPort:
@@ -521,11 +659,11 @@ orthanc:
     # nodePort:
   resources:
     limits:
-      cpu: 1
-      memory: 4Gi
+      cpu: 250m
+      memory: 1Gi
     requests:
-      cpu: 1
-      memory: 4Gi
+      cpu: 250m
+      memory: 1Gi
   config:
     # The logical name of this instance of Orthanc. This one is
     # displayed in Orthanc Explorer and at the URI "/system".

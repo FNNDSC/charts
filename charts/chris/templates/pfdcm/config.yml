@@ -35,21 +35,18 @@ apiVersion: v1
 kind: Secret
 type: Opaque
 metadata:
-  name: {{ .Release.Name }}-pfdcm-services
+  name: {{ include "pfdcm.fullname" . }}
   namespace: {{ .Release.Namespace }}
   labels:
-    app.kubernetes.io/name: pfdcm
     {{- include "pfdcm.labels" . | nindent 4 }}
   annotations:
-    kubernetes.io/description: "Configuration of the CUBE and PACS this PFDCM speaks to"
+    kubernetes.io/description: "PFDCM JSON configuration files"
 stringData:
   {{- /* cube.json and storage.json are both blank, because the related functionality is now handled by oxidicom. */}}
   cube.json: |
-    {{ .Values.pfdcm.additionalConfig.cube | toJson | default "{}" }}
+    {{ .Values.pfdcm.additionalConfig.cube | default (dict) | toJson }}
   storage.json: |
-    {{ .Values.pfdcm.additionalConfig.storage | toJson | default "{}" }}
+    {{ .Values.pfdcm.additionalConfig.storage | default (dict) | toJson }}
   pacs.json: |
-    {
-      "services": {{ include "pfdcm.localOrthanc" . | fromYaml | merge .Values.pfdcm.additionalConfig.pacs.services | toPrettyJson | nindent 8 }}
-    }
-{{ end }}
+    {{- include "pfdcm.localOrthanc" . | fromYaml | dict "services" | mustMerge .Values.pfdcm.additionalConfig.pacs | toPrettyJson | nindent 4 }}
+{{- end -}}

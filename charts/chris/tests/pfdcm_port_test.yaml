@@ -1,0 +1,51 @@
+suite: pfdcm port
+templates:
+  - pfdcm/pfdcm.yml
+tests:
+  - it: should be 4005 by default
+    set:
+      pfdcm.enabled: true
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].ports[0].containerPort
+          value: 4005
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PORT
+            value: "4005"
+  - it: should use the value of containerPort
+    set:
+      pfdcm.enabled: true
+      pfdcm.containerPort: 4567
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].ports[0].containerPort
+          value: 4567
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PORT
+            value: "4567"
+  - it: should use the value of service.port
+    set:
+      pfdcm.enabled: true
+      pfdcm.service.port: 7654
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].ports[0].containerPort
+          value: 7654
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PORT
+            value: "7654"
