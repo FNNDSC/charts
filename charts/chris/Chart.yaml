@@ -45,5 +45,5 @@ dependencies:
   repository: "https://fnndsc.github.io/charts"
   condition: orthanc.enabled
 - name: util
-  version: "~0.1.0"
+  version: "0.2.0"
   repository: "https://fnndsc.github.io/charts"
