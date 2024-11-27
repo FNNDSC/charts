@@ -3,6 +3,8 @@
 {{- .Values.route.host | required "route.host is required because route.enabled=true" -}}
 {{- else if .Values.ingress.enabled -}}
 {{- (first .Values.ingress.hosts).host | required "ingress.hosts[0].host is required because ingress.enabled=true" -}}
+{{- else if (eq .Values.kind "Service") }}
+{{- include "util.fullname" . }}.{{ .Release.Namespace }}.svc {{- /* knative service */}}
 {{- else -}}
 {{- include "util.fullname" . }}:{{ .Values.service.port }}
 {{- end -}}
@@ -33,5 +35,10 @@ spec:
       args:
         - --spider
         - {{ include "util.testConnectionScheme" . }}://{{ include "util.testConnectionHost" . }}{{ (.Values.test).path }}
+      resources:
+        requests: &REQUESTS
+          cpu: 100m
+          memory: 128Mi
+        limits: *REQUESTS
   restartPolicy: Never
 {{- end }}

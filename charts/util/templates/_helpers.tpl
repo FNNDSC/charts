@@ -50,12 +50,15 @@ app.kubernetes.io/name: {{ include "util.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
+{{- define "util.topLabels" -}}
+{{- mustMergeOverwrite (include "util.labels" . | fromYaml) .Values.labels | toYaml }}
+{{- end -}}
 
 {{/*
 Create the name of the service account to use
 */}}
 {{- define "util.serviceAccountName" -}}
-{{- if .Values.serviceAccount.create }}
+{{- if ((.Values).serviceAccount).create }}
 {{- default (include "util.fullname" .) .Values.serviceAccount.name }}
 {{- else }}
 {{- default "default" .Values.serviceAccount.name }}
@@ -69,26 +72,30 @@ Create the name of the service account to use
 {{- define "util.podSpec" -}}
 {{- with (concat (.Values.imagePullSecrets | default (list)) ((.Values.global).imagePullSecrets | default (list)) | mustUniq) }}
 imagePullSecrets:
-{{- toYaml . | nindent 8 }}
+  {{- toYaml . | nindent 2 }}
 {{- end }}
-{{- if (or .Values.serviceAccount.name .Values.serviceAccount.create) }}
+{{- if (or ((.Values).serviceAccount).name ((.Values).serviceAccount).create) }}
 serviceAccountName: {{ include "util.util.serviceAccountName" . }}
 {{- end }}
 {{- with (.Values.podSecurityContext | deepCopy | mustMergeOverwrite (deepCopy ((.Values.global).podSecurityContext | default (dict)))) }}
 securityContext:
-{{- toYaml . | nindent 8 }}
+  {{- toYaml . | nindent 2 }}
 {{- end }}
 {{- with .Values.nodeSelector }}
 nodeSelector:
-{{- toYaml . | nindent 8 }}
+  {{- toYaml . | nindent 2 }}
 {{- end }}
 {{- with .Values.affinity }}
 affinity:
-{{- toYaml . | nindent 8 }}
+  {{- toYaml . | nindent 2 }}
 {{- end }}
 {{- with .Values.tolerations }}
 tolerations:
-{{- toYaml . | nindent 8 }}
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- with .Values.volumes }}
+volumes:
+  {{- toYaml . | nindent 2 }}
 {{- end }}
 {{- end -}}
 
@@ -115,6 +122,10 @@ tolerations:
     - name: {{ $k }}
       value: {{ $v | quote }}
     {{- end }}
+  {{- end }}
+  {{- with .Values.volumeMounts }}
+  volumeMounts:
+    {{- toYaml . | nindent 4 }}
   {{- end }}
   {{- with .Values.securityContext }}
   securityContext:

@@ -1,11 +1,14 @@
 {{- define "util.knativeOrDeployment" -}}
 {{- include "util.serviceAccountTpl" . }}
+---
+{{- include "util.testServiceConnectionTpl" . }}
+---
 {{- if (eq .Values.kind "Service") }}
-{{- include "util.knativeServiceTpl" . }}
+  {{- include "util.knativeServiceTpl" . }}
 {{- else if (eq .Values.kind "Deployment") }}
-{{- include "util.deploymentEverythingTpl" . }}
+  {{- include "util.deploymentEverythingTpl" . }}
 {{- else }}
-{{- fail (printf "Unsupported kind: %s" .kind) }}
+  {{- fail (printf "Unsupported kind: %s" .kind) }}
 {{- end -}}
 {{- end -}}
 
@@ -17,8 +20,6 @@
 {{- include "util.ingressTpl" . }}
 ---
 {{- include "util.serviceTpl" . }}
----
-{{- include "util.testServiceConnectionTpl" . }}
 ---
 {{- include "util.openshiftRouteTpl" . }}
 {{- end }}

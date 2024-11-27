@@ -5,10 +5,7 @@ metadata:
   name: {{ include "util.fullname" . }}
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "util.labels" . | nindent 4 }}
-    {{- with .Values.labels }}
-    {{- toYaml . | nindent 4 }}
-    {{- end }}
+    {{- include "util.topLabels" . | nindent 4 }}
   {{- with .Values.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
@@ -33,6 +30,6 @@ spec:
         {{- end }}
     spec:
       containers:
-        {{- include "util.container" (mustMerge (dict "containerName" (include "util.name" .) "portName" "http") .) | nindent 8 }}
+        {{- include "util.container" (mustMerge (dict "containerName" (default (include "util.name" .) .containerName) "portName" "http") .) | nindent 8 }}
       {{- include "util.podSpec" . | nindent 6 }}
 {{- end }}
