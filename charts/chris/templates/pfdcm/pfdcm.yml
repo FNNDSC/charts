@@ -1,0 +1,22 @@
+{{- if .Values.pfdcm.enabled -}}
+{{- $values := omit .Values.pfdcm "listener" "additionalConfig" "aet" | deepCopy -}}
+{{- $_ := set $values "global" .Values.global -}}
+{{- $_ := set $values "nameOverride" (.Values.pfdcm.nameOverride | default "chris-pfdcm") -}}
+{{- $_ := set $values "volumes" (include "pfdcm.volumes" . | fromYamlArray) -}}
+{{- $_ := set $values "volumeMounts" (include "pfdcm.volumeMounts" . | fromYamlArray) -}}
+
+{{- if (not (hasKey $values "containerPort")) -}}
+{{- $_ := set $values "containerPort" .Values.pfdcm.service.port -}}
+{{- end -}}
+{{- $extraEnv := get $values "extraEnv" -}}
+{{- if (not (hasKey $extraEnv "PORT" )) -}}
+{{- $_ := set $extraEnv "PORT" (get $values "containerPort") -}}
+{{- end -}}
+
+{{- $labels := get $values "labels" -}}
+{{- if (empty (get $labels "app.kubernetes.io/component")) -}}
+{{- $_ := set $labels "app.kubernetes.io/component" "backend" -}}
+{{- end -}}
+
+{{- mustMerge (dict "Values" $values "appVersion" .Values.pfdcm.image.tag "containerName" "pfdcm") (omit . "Values") | include "util.knativeOrDeployment" -}}
+{{- end -}}

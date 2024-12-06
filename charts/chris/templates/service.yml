@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-server
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: {{ include "chris.name" . }}-server
+    {{- include "cube.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.cube.server.service.type }}
+  selector:
+    app.kubernetes.io/name: {{ include "chris.name" . }}-server
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  ports:
+    - name: http
+      targetPort: http
+      protocol: TCP
+      port: {{ .Values.cube.server.service.port }}
+      {{- if .Values.cube.server.service.nodePort }}
+      nodePort: {{ .Values.cube.server.service.nodePort }}
+      {{- end }}

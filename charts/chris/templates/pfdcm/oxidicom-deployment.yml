@@ -1,27 +1,3 @@
-{{- define "orthanc.dicomService" -}}
-{{ .Release.Name }}-orthanc-dicom:{{ .Values.orthanc.dicomService.port }}
-{{- end -}}
-
-{{- define "oxidicom.pacsAddress" -}}
-{{- if (and .Values.orthanc.enabled (not .Values.orthanc.dicomService.enabled)) -}}
-{{- fail ".orthanc.dicomService.enabled must be true" -}}
-{{- end -}}
-{{- if .Values.pfdcm.listener.config.pacsAddress -}}
-{{- if (and .Values.orthanc.enabled (not (contains (include "orthanc.dicomService" .) .Values.pfdcm.listener.config.pacsAddress))) -}}
-{{- fail (printf "pfdcm.listener.config.pacsAddress must be configured with %s=\"%s\"" .Values.orthanc.config.dicomAet (include "orthanc.dicomService" .)) -}}
-{{- end -}}
-{{- .Values.pfdcm.listener.config.pacsAddress -}}
-{{- else -}}
-{{ "{" }}{{ .Values.orthanc.config.dicomAet }}={{ include "orthanc.dicomService" . | quote }}{{ "}" }}
-{{- end -}}
-{{- end -}}
-{{- define "oxidicom.databasePoolSize" -}}
-{{- if .Values.pfdcm.listener.config.databasePool -}}
-{{- .Values.pfdcm.listener.config.databasePool -}}
-{{- else if .Values.postgresql.primary.resources.requests.cpu -}}
-{{- .Values.postgresql.primary.resources.requests.cpu -}}
-{{- end -}}
-{{- end -}}
 {{- if .Values.pfdcm.enabled -}}
 apiVersion: apps/v1
 kind: Deployment
@@ -29,7 +5,6 @@ metadata:
   name: {{ .Release.Name }}-oxidicom
   namespace: {{ .Release.Namespace }}
   labels:
-    app.kubernetes.io/name: oxidicom
     {{- include "pfdcm.listenerLabels" . | nindent 4 }}
   annotations:
     kubernetes.io/description: "ChRIS DICOM receiver"
@@ -46,7 +21,6 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        app.kubernetes.io/name: oxidicom
         {{- include "pfdcm.listenerLabels" . | nindent 8 }}
     spec:
       {{- with .Values.imagePullSecrets }}
@@ -63,38 +37,35 @@ spec:
             - name: scp
               containerPort: {{ .Values.pfdcm.listener.service.port }}
               protocol: TCP
+              {{- if .Values.pfdcm.listener.hostPort }}
+              hostPort: {{ .Values.pfdcm.listener.hostPort }}
+              {{- end }}
           resources:
             {{- toYaml .Values.pfdcm.listener.resources | nindent 12 }}
           env:
-            - name: OXIDICOM_DB_CONNECTION
+            - name: OXIDICOM_AMQP_ADDRESS
               valueFrom:
                 secretKeyRef:
-                  {{- if not .Values.postgresql.serviceBindings.enabled }}
-                  {{- fail "Oxidicom requires the value .postgresql.serviceBindings.enabled: true" }}
+                  {{- if not .Values.rabbitmq.serviceBindings.enabled }}
+                  {{- fail "Oxidicom requires .Values.rabbitmq.serviceBindings.enabled: true"}}
                   {{- end }}
-                  name: {{ .Release.Name }}-postgresql-svcbind-custom-user
+                  name: {{ .Release.Name }}-rabbitmq-svcbind
                   key: uri
+            - name: OXIDICOM_NATS_ADDRESS
+              value: {{ include "chris.nats.address" . | quote }}
             - name: OXIDICOM_LISTENER_PORT
               value: {{ .Values.pfdcm.listener.service.port | quote }}
             - name: OXIDICOM_FILES_ROOT
               value: /data
             - name: OXIDICOM_SCP_AET
-              value: {{ .Values.pfdcm.aet | quote }}
-              {{- if (include "oxidicom.databasePoolSize" .) }}
-            - name: OXIDICOM_DB_POOL
-              value: {{ include "oxidicom.databasePoolSize" . | quote }}
-              {{- end }}
-              {{- if .Values.pfdcm.listener.config.batchSize }}
-            - name: OXIDICOM_DB_BATCH_SIZE
-              value: {{ .Values.pfdcm.listener.config.batchSize | quote }}
-              {{- end }}
+              value: {{ .Values.pfdcm.aet | required ".Values.pfdcm.aet is required for oxidicom" | quote }}
               {{- if .Values.pfdcm.listener.config.listenerThreads }}
             - name: OXIDICOM_LISTENER_THREADS
               value: {{ .Values.pfdcm.listener.config.listenerThreads | quote }}
               {{- end }}
-              {{- if .Values.pfdcm.listener.config.verbose }}
-            - name: OXIDICOM_VERBOSE
-              value: {{ .Values.pfdcm.listener.config.verbose | quote }}
+              {{- if .Values.pfdcm.listener.config.logging }}
+            - name: RUST_LOG
+              value: {{ .Values.pfdcm.listener.config.logging | quote }}
               {{- end }}
               {{- if .Values.pfdcm.listener.config.tokioThreads }}
             - name: TOKIO_WORKER_THREADS
@@ -116,10 +87,6 @@ spec:
               {{- if .Values.pfdcm.listener.config.promiscuous }}
             - name: OXIDICOM_SCP_PROMISCUOUS
               value: {{ .Values.pfdcm.listener.config.promiscuous | quote }}
-              {{- end }}
-              {{- if (include "oxidicom.pacsAddress" .) }}
-            - name: OXIDICOM_PACS_ADDRESS
-              value: {{ include "oxidicom.pacsAddress" . | quote }}
               {{- end }}
 
               {{- /* Extra environment variables, manually specified */}}

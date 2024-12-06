@@ -1,0 +1,51 @@
+{{- if .Values.postgresSecret.isCrunchy }}
+{{- $secretName := .Values.postgresSecret.name | required "postgresSecret.name is required because postgresSecret.isCrunchy=true" }}
+{{- $description := "Creates a schema for the database user. Workaround for if the autoCreateUserSchema feature is not enabled on the Crunchy Postgres Operator." }}
+{{- $name := printf "%s-pg-create-user-schema" $.Release.Name }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ $name }}
+  namespace: {{ $.Release.Namespace }}
+  labels: &LABELS
+    helm.sh/chart: {{ include "chris.chart" $ }}
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+    app.kubernetes.io/managed-by: {{ $.Release.Service }}
+  annotations:
+    "helm.sh/hook": pre-install
+    # "helm.sh/hook-delete-policy": hook-succeeded
+    "kubernetes.io/description": {{ quote $description }}
+spec:
+  template:
+    metadata:
+      name: {{ $name }}
+      labels: *LABELS
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: pg-create-schema
+          image: docker.io/library/postgres:16-alpine3.20
+          command:
+            - psql
+            - -c
+            - CREATE SCHEMA IF NOT EXISTS AUTHORIZATION $(USERNAME)
+            - $(URI)
+          env:
+            - name: USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $secretName }}
+                  key: {{ $.Values.postgresSecret.keys.username | default "user" }}
+            - name: URI
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $secretName }}
+                  key: {{ $.Values.postgresSecret.keys.uri | default "uri" }}
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+{{- end }}

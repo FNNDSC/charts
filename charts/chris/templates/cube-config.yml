@@ -1,5 +1,6 @@
----
 
+{{- $unchangableKeys := list "DJANGO_SETTINGS_MODULE" "STORAGE_ENV" "MEDIA_ROOT" "NATS_ADDRESS" "POSTGRES_DB" "POSTGRES_USER" "POSTGRES_PASSWORD" }}
+{{- $sensitiveKeys := list "DJANGO_SECRET_KEY" "AUTH_LDAP_BIND_PASSWORD" "CHRIS_SUPERUSER_PASSWORD" }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -10,35 +11,55 @@ metadata:
   annotations:
     kubernetes.io/description: "Configuration of ChRIS backend"
 data:
-  {{- toYaml .Values.cube.config | nindent 2 }}
-
-  DJANGO_SETTINGS_MODULE: "config.settings.production"
-  CHRIS_STORE_URL: "https://cube.chrisproject.org/api/v1/"
-  STORAGE_ENV: "filesystem"
-  MEDIA_ROOT: "/data"
+  {{- with .Values.cube.config }}
+    {{- $config := . }}
+    {{- range $sensitiveKey := $sensitiveKeys }}
+      {{- if (hasKey $config $sensitiveKey) }}
+        {{- fail (printf "Do not set .Values.cube.config.%s. Use .Values.cube.secrets.%s instead." $sensitiveKey $sensitiveKey) }}
+      {{- end }}
+    {{- end }}
+    {{- range $unchangableKey := $unchangableKeys }}
+      {{- if (hasKey $config $unchangableKey ) }}
+        {{- fail (printf ".Values.cube.config.%s must not be set." $unchangableKey) }}
+      {{- end }}
+    {{- end }}
+    {{- toYaml $config | nindent 2 }}
+  {{- end }}
+  NATS_ADDRESS: {{ include "chris.nats.address" . | quote }}
+  DJANGO_SETTINGS_MODULE: 'config.settings.production'
+  STORAGE_ENV: 'fslink'
+  MEDIA_ROOT: '/data'
+  {{- if (not (hasKey (merge .Values.cube.config .Values.cube.secrets) "CHRIS_STORE_URL")) }}
+  CHRIS_STORE_URL: 'https://cube.chrisproject.org/api/v1/'
+  {{- end }}
+  {{- if (not (hasKey (merge .Values.cube.config .Values.cube.secrets) "PFDCM_ADDRESS")) }}
+  PFDCM_ADDRESS: {{ include "chris.pfdcmInternalAddress" . | quote }}
+  {{- end }}
 
 ---
 
+{{- $cubeSecret := (print .Release.Name "-chris-backend") }}
 apiVersion: v1
 kind: Secret
 type: Opaque
 metadata:
-  name: {{ .Release.Name }}-cube-secrets
+  name: {{ $cubeSecret }}
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "cube.labels" . | nindent 4 }}
-  annotations:
-    kubernetes.io/description: "https://docs.djangoproject.com/en/4.2/ref/settings/#std-setting-SECRET_KEY"
-stringData:
-  CELERY_BROKER_URL: "amqp://{{ .Values.rabbitmq.auth.username }}:{{ .Values.rabbitmq.auth.password }}@{{ .Release.Name }}-rabbitmq:5672"
 data:
-  {{- with (lookup "v1" "Secret" .Release.Namespace ( print .Release.Name "-cube-secrets"))}}
-  DJANGO_SECRET_KEY:  {{ index .data "DJANGO_SECRET_KEY" }}
-  {{- else }}
-  DJANGO_SECRET_KEY: {{ randAlphaNum 32 | b64enc | quote }}
+  DJANGO_SECRET_KEY: {{ include "util.valueOrLookupOrRandom" (dict "root" . "value" .Values.cube.secrets.DJANGO_SECRET_KEY "secret" $cubeSecret "name" "DJANGO_SECRET_KEY" "length" 32) }}
+  CHRIS_SUPERUSER_PASSWORD: {{ include "util.valueOrLookupOrRandom" (dict "root" . "value" .Values.cube.secrets.CHRIS_SUPERUSER_PASSWORD "secret" $cubeSecret "name" "CHRIS_SUPERUSER_PASSWORD" "length" 16) }}
+  {{- with .Values.cube.secrets }}
+  {{- $secrets := . }}
+  {{- range $unchangableKey := $unchangableKeys }}
+    {{- if (hasKey $secrets $unchangableKey ) }}
+      {{- fail (printf ".Values.cube.secrets.%s must not be set." $unchangableKey) }}
+    {{- end }}
   {{- end }}
-  {{- if .Values.cube.secrets }}
-  {{- range $key, $secret := .Values.cube.secrets }}
+  {{- range $key, $secret := . }}
+  {{- if (not (or (eq $key "CHRIS_SUPERUSER_PASSWORD") (eq $key "DJANGO_SECRET_KEY"))) }}
   {{ $key }}: {{ $secret | b64enc | quote }}
+  {{- end }}
   {{- end }}
   {{- end }}

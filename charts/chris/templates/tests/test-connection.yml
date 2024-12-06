@@ -12,9 +12,10 @@ metadata:
 
 spec:
   restartPolicy: Never
+  {{- /* TODO create user in initContainer */}}
   containers:
     - name: create-user-test
-      image: ghcr.io/fnndsc/aiochris:0.4.0
+      image: ghcr.io/fnndsc/aiochris:0.10.0
       command:
         - python
         - -c
@@ -26,13 +27,14 @@ spec:
 
           logging.basicConfig(level=logging.INFO)
 
-          url = 'http://{{ .Release.Name }}-heart:8000/api/v1/'
+          url = 'http://{{ include "chris.heart.name" . }}:{{ include "chris.heart.port" . }}/api/v1/'
           username = f'helmtest-{int(time.time())}'
           password = ''.join(random.choices(string.ascii_uppercase + string.ascii_lowercase + string.digits, k=12))
           email = f'{username}@example.org'
           data = b'Some random data appears on the next line.\n{{ randAlphaNum 64 }}\n'
 
           async def main():
+              {{- /* TODO count number of plugins */}}
               created_user = await ChrisClient.create_user(url, username, password, email)
               logging.info(f'created user {created_user}')
               chris = await ChrisClient.from_login(url, username, password)

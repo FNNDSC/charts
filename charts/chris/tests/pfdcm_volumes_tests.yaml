@@ -1,0 +1,36 @@
+suite: pfdcm volumes
+release:
+  name: testpfdcmv
+templates:
+  - pfdcm/pfdcm.yml
+tests:
+  - it: should have volumes and volumeMounts
+    set:
+      pfdcm.enabled: true
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            mountPath: /home/dicom
+            name: data
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            mountPath: /home/dicom/services
+            name: config
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: data
+            emptyDir:
+              sizeLimit: 1Gi
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: config
+            secret:
+              secretName: testpfdcmv-pfdcm-chris
+              optional: false

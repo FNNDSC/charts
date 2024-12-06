@@ -1,12 +1,13 @@
+{{- $kubectl := ternary "oc" "kubectl" (.Capabilities.APIVersions.Has "security.openshift.io/v1/SecurityContextConstraints") -}}
+
 The ChRIS backend is being deployed. Please wait for it to be ready.
 You can run this command to block while the server is starting up:
 
-    kubectl wait --for=condition=ready pod -n {{ .Release.Namespace }} -l app.kubernetes.io/instance={{ .Release.Name }} -l app.kubernetes.io/name={{ include "chris.name" . }}-server --timeout=300s
+    {{ $kubectl }} wait --for=condition=ready pod -n {{ .Release.Namespace }} -l app.kubernetes.io/instance={{ .Release.Name }} -l app.kubernetes.io/name={{ include "chris.name" . }}-server --timeout=300s
 
-After that, try logging in as the admin user. The username is "{{ .Values.chris_admin.username }}".
-The password can be revealed by running the command
+After that, try logging in as the admin user. The password can be revealed by running the command
 
-    kubectl get secret -n {{ .Release.Namespace }} {{ .Release.Name }}-chris-superuser -o jsonpath='{.data.password}' | base64 --decode
+    {{ $kubectl }} get secret -n {{ .Release.Namespace }} {{ .Release.Name }}-chris-backend -o jsonpath='{.data.CHRIS_SUPERUSER_PASSWORD}' | base64 --decode
 {{ if (and .Values.cube.server.service.nodePort .Values.cube.server.service.nodePortHost) }}
 Your CUBE API address is:
 
@@ -14,6 +15,6 @@ Your CUBE API address is:
 
 Here is a one-liner for you to check that everything is up and running:
 
-    curl -i --fail-with-body -u "{{ .Values.chris_admin.username }}:$(kubectl get secret -n {{ .Release.Namespace }} {{ .Release.Name }}-chris-superuser -o jsonpath='{.data.password}' | base64 --decode)" http://{{ .Values.cube.server.service.nodePortHost }}:{{ .Values.cube.server.service.nodePort }}/chris-admin/api/v1/
+    curl -i --fail-with-body -u "chris:$(kubectl get secret -n {{ .Release.Namespace }} {{ .Release.Name }}-chris-backend -o jsonpath='{.data.CHRIS_SUPERUSER_PASSWORD}' | base64 --decode)" http://{{ .Values.cube.server.service.nodePortHost }}:{{ .Values.cube.server.service.nodePort }}/chris-admin/api/v1/
 
 {{ end }}

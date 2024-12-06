@@ -1,0 +1,29 @@
+suite: create-incluster-cr initContainer
+release:
+  name: testcr
+templates:
+  - heart.yml
+tests:
+  - it: should have environment variables for PFCON_USER and PFCON_PASSWORD
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+        # smell: hard-coded array index
+      - contains:
+          path: spec.template.spec.initContainers[2].env
+          content:
+            name: PFCON_USER
+            valueFrom:
+              secretKeyRef:
+                name: testcr-pfcon
+                key: PFCON_USER
+      - contains:
+          path: spec.template.spec.initContainers[2].env
+          content:
+            name: PFCON_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: testcr-pfcon
+                key: PFCON_PASSWORD
+

@@ -1,44 +1,5 @@
-apiVersion: apps/v1
-
-kind: Deployment
-metadata:
-  name: {{ include "chris.fullname" . }}-worker-mains
-  namespace: {{ .Release.Namespace }}
-  labels:
-    app.kubernetes.io/name: {{ include "chris.name" . }}-worker-mains
-    {{- include "cube.labels" . | nindent 4 }}
-  annotations:
-    kubernetes.io/description: "ChRIS backend periodic tasks"
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: {{ include "chris.name" . }}-worker-mains
-      app.kubernetes.io/instance: {{ .Release.Name }}
-  template:
-    metadata:
-      name: {{ .Release.Name }}-worker-mains
-      namespace: {{ .Release.Namespace }}
-      {{- with .Values.podAnnotations }}
-      annotations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      labels:
-        app.kubernetes.io/name: {{ include "chris.name" . }}-worker-mains
-        {{- include "cube.labels" . | nindent 8 }}
-    spec:
-      {{- with .Values.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      initContainers:
-        {{- include "cube.waitServerReady" . | nindent 8 }}
-      containers:
-        - name: worker-mains
-          command: ["celery", "-A", "core", "worker", "-c", "4", "-l", "info", "-Q", "main1,main2"]
-          {{- include "cube.container" . | nindent 10 }}
-          resources:
-            {{- toYaml .Values.cube.workerMains.resources | nindent 12 }}
-
-      {{- include "cube.pod" . | nindent 6 }}
-      {{- include "cube.podAffinityWorkaround" . | nindent 6 }}
+{{- include "cube.deployment" (mustMerge (dict
+  "name" "worker-mains"
+  "command" .Values.cube.workerMains.command
+  "resources" .Values.cube.workerMains.resources
+) . ) -}}
