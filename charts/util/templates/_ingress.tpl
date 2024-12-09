@@ -1,5 +1,5 @@
 {{- define "util.ingressTpl" }}
-{{- if .Values.ingress.enabled -}}
+{{- if .Values.ingress.enabled }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
