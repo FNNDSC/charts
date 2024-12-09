@@ -143,6 +143,7 @@ spec:
             - --threads=1
             - --blocking-threads=1
             - --threading-mode=workers
+            - --interface=asginl
             - 'config.asgi:application'
           {{- include "cube.container" . | nindent 10 }}
           ports:
