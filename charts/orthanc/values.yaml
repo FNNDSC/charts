@@ -13,8 +13,9 @@ imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
-global: {}
-  # storageClass:
+global:
+  # -- Global default StorageClass for Persistent Volume(s)
+  defaultStorageClass: ""
 
 serviceAccount:
   # Specifies whether a service account should be created
