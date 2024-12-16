@@ -1522,6 +1522,24 @@ entries:
   orthanc:
   - apiVersion: v2
     appVersion: 1.12.3
+    created: "2024-12-16T19:23:09.98037193Z"
+    description: Orthanc PACS server
+    digest: 44c38e456df3212bc2467bc0c0a696c142d26ec6937bfe750911d2f0d21eedda
+    maintainers:
+    - email: dev@babyMRI.org
+      name: The FNNDSC Dev Team
+      url: https://fnndsc.org
+    name: orthanc
+    sources:
+    - https://github.com/FNNDSC/charts
+    - https://github.com/FNNDSC/orthanc-fnndsc
+    - https://hub.docker.com/r/jodogne/orthanc-plugins
+    type: application
+    urls:
+    - https://github.com/FNNDSC/charts/releases/download/orthanc-1.3.0/orthanc-1.3.0.tgz
+    version: 1.3.0
+  - apiVersion: v2
+    appVersion: 1.12.3
     created: "2024-03-26T15:38:58.75766352Z"
     description: Orthanc PACS server
     digest: 8f72b9d6b124d81cddb2b260184594fe5999e6a66e91190e63ea1ed360118611
@@ -1911,4 +1929,4 @@ entries:
     urls:
     - https://github.com/FNNDSC/charts/releases/download/util-0.1.0/util-0.1.0.tgz
     version: 0.1.0
-generated: "2024-12-09T16:24:55.835214273Z"
+generated: "2024-12-16T19:23:09.980544712Z"
