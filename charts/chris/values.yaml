@@ -6,8 +6,8 @@ fullnameOverride: ""
 imagePullSecrets: []
 
 global:
-  # -- StorageClass to use for PersistentVolumeClaims
-  storageClass: ""
+  # -- Global default StorageClass for Persistent Volume(s)
+  defaultStorageClass: ""
 
   # -- Optional security context to apply to all pods
   # podSecurityContext:
@@ -130,9 +130,9 @@ cube:
     # -- is to share one PersistentVolumeClaim between pfcon and CUBE.
     # -- Leave `enabled=false` unless you know what you're doing.
     enabled: false
-    size: 100Gi
+    size: 8Gi
     accessModes: [ "ReadWriteOnce" ]
-    # storageClass: ""
+    storageClass: ""
 
   # -- Main celery worker configuration.
   workerMains:
@@ -334,9 +334,9 @@ pfcon:
   # -- It is recommended to allocate as much space as possible for CUBE files.
   storage:
     existingClaim: ""
-    size: 100Gi
+    size: 8Gi
     accessModes: [ "ReadWriteOnce" ]
-    # storageClass:
+    storageClass:
 
   pfcon:
     resources:

@@ -10,12 +10,12 @@ dependencies:
   version: 8.4.10
 - name: pfcon
   repository: https://fnndsc.github.io/charts
-  version: 1.0.0-alpha.1
+  version: 1.0.0-alpha.2
 - name: orthanc
   repository: https://fnndsc.github.io/charts
-  version: 1.2.1
+  version: 1.3.0
 - name: util
   repository: https://fnndsc.github.io/charts
   version: 0.2.1
-digest: sha256:24d5191681ac7c8e6d13b7a0cdd7e02d9513a18eeba9d651a25abce5f1886117
-generated: "2024-12-09T09:46:42.66552179-05:00"
+digest: sha256:a7f037bda46e9b04fd3264c66bc27edd9ec7e772814c291fe5f36981a7f2ddb7
+generated: "2024-12-16T15:08:24.31922799-05:00"
