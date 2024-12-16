@@ -7,10 +7,9 @@ metadata:
   labels:
     {{- include "pfcon.labels" . | nindent 4 }}
 spec:
-  {{- if .Values.storage.storageClass }}
-  storageClassName: {{ .Values.storage.storageClass }}
-  {{- else if .Values.global.storageClass }}
-  storageClassName: {{ .Values.global.storageClass }}
+  {{- $storageClass := .Values.storage.storageClass | default .Values.global.defaultStorageClass }}
+  {{- with .Values.storage.storageClass | default .Values.global.defaultStorageClass }}
+  storageClassName: {{ . }}
   {{- end }}
   accessModes:
   {{- toYaml .Values.storage.accessModes | nindent 4 }}

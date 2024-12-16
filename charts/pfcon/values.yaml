@@ -14,8 +14,8 @@ serviceAccount:
   name: ""
 
 global:
-  # -- storage class to use for persistent volume claims
-  storageClass: ""
+  # -- Global default StorageClass for Persistent Volume(s)
+  defaultStorageClass: ""
 
   # -- optional security context to apply to all pods
   podSecurityContext: {}
@@ -35,9 +35,9 @@ service:
 
 storage:
   existingClaim: ""
-  size: 100Gi
+  size: 8Gi
   accessModes: [ "ReadWriteOnce" ]
-  # storageClass:
+  storageClass: ""
 
 nodeSelector: {}
 
