@@ -8,10 +8,6 @@
 {{- if (not (hasKey $values "containerPort")) -}}
 {{- $_ := set $values "containerPort" .Values.pfdcm.service.port -}}
 {{- end -}}
-{{- $extraEnv := get $values "extraEnv" -}}
-{{- if (not (hasKey $extraEnv "PORT" )) -}}
-{{- $_ := set $extraEnv "PORT" (get $values "containerPort") -}}
-{{- end -}}
 
 {{- $labels := get $values "labels" -}}
 {{- if (empty (get $labels "app.kubernetes.io/component")) -}}
