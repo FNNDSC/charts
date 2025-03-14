@@ -419,7 +419,8 @@ config:
   SslEnabled: false
   
   # -- Whether or not the password protection is enabled (using HTTP
-  # -- basic access authentication). 
+  # -- basic access authentication).
+  # -- HINT: if oauth2-proxy.enabled=true, set AuthenticationEnabled=false.
   AuthenticationEnabled: false
   # -- The list of the registered users. Because Orthanc uses HTTP
   # -- Basic Authentication, the passwords are stored as plain text.
@@ -483,8 +484,14 @@ config:
     Theme: "dark"
 
   # -- Configuration of OHIF Viewer plugin
+  # -- https://orthanc.uclouvain.be/book/plugins/ohif.html#configuration
   OHIF:
     DataSource: "dicom-web"
+
+  # -- Configuration of DICOMweb
+  # -- https://orthanc.uclouvain.be/book/plugins/dicomweb.html#server-related-options
+  DicomWeb:
+    Enable: true
 
   # -- Path to the directory where Orthanc stores its large temporary
   # -- files. The content of this folder can be safely deleted once
@@ -496,3 +503,81 @@ config:
   # -- NOTE: an emptyDir volume will be created for this location,
   #          which can be configured by emptyDirs.temporaryDirectory.
   TemporaryDirectory: /tmp/Orthanc
+
+# -- oauth2-proxy subchart configuration.
+# -- Run `helm show values oauth2-proxy/oauth2-proxy` to show full configuration options.
+oauth2-proxy:
+  # -- Install oauth2-proxy
+  enabled: false
+
+  # Oauth client configuration specifics
+  config:
+    # Add config annotations
+    annotations: {}
+    # OAuth client ID
+    clientID: "XXXXXXX"
+    # OAuth client secret
+    clientSecret: "XXXXXXXX"
+    # Create a new secret with the following command
+    # openssl rand -base64 32 | head -c 32 | base64
+    # Use an existing secret for OAuth2 credentials (see secret.yaml for required fields)
+    # Example:
+    # existingSecret: secret
+    cookieSecret: "XXXXXXXXXXXXXXXX"
+    configFile: |-
+        email_domains = [ "*" ]
+        upstreams = [ "http://{{ .Values.image.repository }}" ]  # TODO left off here: how can I pass parent values to subchart?
+      # Custom configuration file: oauth2_proxy.cfg
+      # configFile: |-
+      #   pass_basic_auth = false
+      #   pass_access_token = true
+      # Use an existing config map (see configmap.yaml for required fields)
+      # Example:
+      # existingConfig: config
+
+  alphaConfig:
+    enabled: false
+
+  image:
+    repository: "quay.io/oauth2-proxy/oauth2-proxy"
+    # appVersion is used by default
+    tag: ""
+    pullPolicy: "IfNotPresent"
+    command: []
+
+  ingress:
+    enabled: false
+    # className: nginx
+    path: /
+    # Only used if API capabilities (networking.k8s.io/v1) allow it
+    pathType: ImplementationSpecific
+    # Used to create an Ingress record.
+    # hosts:
+      # - chart-example.local
+    # Extra paths to prepend to every host configuration. This is useful when working with annotation based services.
+    # Warning! The configuration is dependant on your current k8s API version capabilities (networking.k8s.io/v1)
+    # extraPaths:
+    # - path: /*
+    #   pathType: ImplementationSpecific
+    #   backend:
+    #     service:
+    #       name: ssl-redirect
+    #       port:
+    #         name: use-annotation
+    labels: {}
+    # annotations:
+    #   kubernetes.io/ingress.class: nginx
+    #   kubernetes.io/tls-acme: "true"
+    # tls:
+      # Secrets must be manually created in the namespace.
+      # - secretName: chart-example-tls
+      #   hosts:
+      #     - chart-example.local
+
+  resources: {}
+    # limits:
+    #   cpu: 100m
+    #   memory: 300Mi
+    # requests:
+    #   cpu: 100m
+    #   memory: 300Mi

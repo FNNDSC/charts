@@ -1,6 +1,8 @@
 suite: service.yaml
 templates:
   - service.yaml
+release:
+  name: svctest
 tests:
   - it: should have http and dicom ports and nodePorts set correctly
     set:
@@ -60,4 +62,15 @@ tests:
               protocol: TCP
               port: 1111
               targetPort: 2222
+  - it: should print correct oauth2-config if upstreams is not set correctly
+    set:
+      config.HttpServerEnabled: true
+      config.HttpPort: 8042
+      oauth2-proxy.enabled: true
+    asserts:
+      - failedTemplate:
+          errorMessage: >-
+            error: oauth2-proxy.config.configFile must contain
+            `upstreams = [ "http://svctest-orthanc:8042" ]`
+            (Due to limitations of Helm, subchart cannot be configured automatically.)
 
