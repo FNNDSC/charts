@@ -25,6 +25,7 @@ jobs:
       - name: Update Helm repos
         run: |
           helm repo add fnndsc https://fnndsc.github.io/charts
+          helm repo add oauth2-proxy https://oauth2-proxy.github.io/manifests
           helm repo update
 
       - name: Run chart-releaser
