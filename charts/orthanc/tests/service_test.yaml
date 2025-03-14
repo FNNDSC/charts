@@ -1,0 +1,76 @@
+suite: service.yaml
+templates:
+  - service.yaml
+release:
+  name: svctest
+tests:
+  - it: should have http and dicom ports and nodePorts set correctly
+    set:
+      service.ports.http: 1234
+      service.ports.dicom: 5678
+      service.nodePorts.http: 30123
+      service.nodePorts.dicom: 30456
+      config.HttpServerEnabled: true
+      config.HttpPort: 8888
+      config.DicomServerEnabled: true
+      config.DicomPort: 4444
+    asserts:
+      - lengthEqual:
+          path: spec.ports
+          count: 2
+      - contains:
+          path: spec.ports
+          content:
+            name: http
+            protocol: TCP
+            port: 1234
+            targetPort: 8888
+            nodePort: 30123
+      - contains:
+          path: spec.ports
+          content:
+            name: dicom
+            protocol: TCP
+            port: 5678
+            targetPort: 4444
+            nodePort: 30456
+  - it: should work with HTTP server only
+    set:
+      service.ports.http: 1234
+      config.HttpServerEnabled: true
+      config.HttpPort: 8888
+      config.DicomServerEnabled: false
+    asserts:
+      - equal:
+          path: spec.ports
+          value:
+            - name: http
+              protocol: TCP
+              port: 1234
+              targetPort: 8888
+  - it: should work with DICOM server only
+    set:
+      service.ports.dicom: 1111
+      config.HttpServerEnabled: false
+      config.DicomServerEnabled: true
+      config.DicomPort: 2222
+    asserts:
+      - equal:
+          path: spec.ports
+          value:
+            - name: dicom
+              protocol: TCP
+              port: 1111
+              targetPort: 2222
+  - it: should print correct oauth2-config if upstreams is not set correctly
+    set:
+      config.HttpServerEnabled: true
+      config.HttpPort: 8042
+      oauth2-proxy.enabled: true
+    asserts:
+      - failedTemplate:
+          errorMessage: >-
+            error: oauth2-proxy.config.configFile must contain
+            `upstreams = [ "http://svctest-orthanc:8042" ]`
+            (Due to limitations of Helm, subchart cannot be configured automatically.)
+

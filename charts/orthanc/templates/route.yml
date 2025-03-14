@@ -1,0 +1,23 @@
+{{- if .Values.route.enabled -}}
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: {{ include "orthanc.fullname" . }}
+  labels:
+    {{- include "orthanc.labels" . | nindent 4 }}
+  {{- with (merge .Values.route.annotations .Values.commonAnnotations )}}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  to:
+    kind: Service
+    name: {{ include "orthanc.fullname" . }}
+  {{- with .Values.route.tls }}
+  tls:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  port:
+    targetPort: http
+  host: {{ required ".Values.route.host is required." .Values.route.host }}
+{{- end }}

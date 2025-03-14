@@ -1,23 +1,53 @@
-{{- if .Values.service.enabled }}
+{{- if .Values.service.create }}
 apiVersion: v1
 kind: Service
 metadata:
   name: {{ include "orthanc.fullname" . }}
-  namespace: {{ .Release.Namespace }}
   labels:
-    app.kubernetes.io/name: {{ include "orthanc.name" . }}
     {{- include "orthanc.labels" . | nindent 4 }}
+  {{- with (merge .Values.service.annotations .Values.commonAnnotations )}}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   type: {{ .Values.service.type }}
   ports:
-    - port: {{ .Values.service.port }}
-      targetPort: http
+    {{- if .Values.config.HttpServerEnabled }}
+    - port: {{ .Values.service.ports.http }}
+      targetPort: {{ .Values.config.HttpPort }}
       protocol: TCP
       name: http
-      {{- if .Values.service.nodePort }}
-      nodePort: {{ .Values.service.nodePort }}
+      {{- with (dig "nodePorts" "http" nil .Values.service) }}
+      nodePort: {{ . }}
       {{- end }}
-
+    {{- end }}
+    {{- if .Values.config.DicomServerEnabled }}
+    - port: {{ .Values.service.ports.dicom }}
+      targetPort: {{ .Values.config.DicomPort }}
+      protocol: TCP
+      name: dicom
+      {{- with (dig "nodePorts" "dicom" nil .Values.service) }}
+      nodePort: {{ . }}
+      {{- end }}
+    {{- end }}
   selector:
     {{- include "orthanc.selectorLabels" . | nindent 4 }}
+{{- /*
+  Poor-man's validation of oauth2-proxy.config.configFile.
+  If enabled, oauth2-proxy's upstreams must be configured to point to
+  Orthanc's HTTP service. Unfortunately, this is not possible to
+  configure using Helm[1], so alternatively we do our best to validate
+  the user's manually supplied configuration file and conditionally
+  print out the correct configuration.
+
+  [1] see https://github.com/helm/helm/issues/12323
+*/}}
+{{- if (and (index .Values "oauth2-proxy" "enabled")
+             .Values.config.HttpServerEnabled) }}
+  {{- $expected := printf "http://%s:%d" (include "orthanc.fullname" . ) (int .Values.service.ports.http) }}
+  {{- if (and (index .Values "oauth2-proxy" "config" "configFile" | contains $expected | not)
+              (index .Values "oauth2-proxy" "config" "existingConfig" | empty)) }}
+    {{- printf "error: oauth2-proxy.config.configFile must contain `upstreams = [ \"%s\" ]` (Due to limitations of Helm, subchart cannot be configured automatically.)" $expected | fail }}
+  {{- end }}
+{{- end }}
 {{- end }}

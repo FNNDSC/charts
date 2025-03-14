@@ -358,8 +358,8 @@ pfcon:
       GUNICORN_CMD_ARGS: "--workers=4 --timeout=3600"
 
   pman:
-    # It is unnecessary to increase pman's resources to above the minimum because
-    # pman doesn't do anything besides sending and receiving HTTP requests.
+    # -- It is unnecessary to increase pman's resources to above the minimum because
+    # -- pman doesn't do anything besides sending and receiving HTTP requests.
     resources:
       limits:
         cpu: 500m
@@ -368,18 +368,16 @@ pfcon:
         cpu: 500m
         memory: 512Mi
 
-    workers: 4
-    workerTimeout: 30
-
     # -- pman configuration
     # -- https://github.com/FNNDSC/pman#environment-variables
     # -- N.B.: SECRET_KEY, CONTAINER_ENV, STORAGE_TYPE, VOLUME_NAME, and CONTAINER_USER
     # -- are handled automatically, and should not be manually set.
-    config:
+    extraEnv:
       JOB_LABELS: chrisproject.org/job=plugininstance
       ENABLE_HOME_WORKAROUND: "yes"
       REMOVE_JOBS: "yes"
       IGNORE_LIMITS: "no"
+      GUNICORN_CMD_ARGS: "--workers=4 --timeout=30"
 
     # -- Set securityContext of containers created by pman to have the same securityContext as .global.podSecurityContext
     # -- or the default fnndsc/cube container user, so that the container user can write to the shared volume's filesystem.

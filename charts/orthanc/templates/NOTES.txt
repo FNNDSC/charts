@@ -1,0 +1,24 @@
+{{- if (and (.Values.objectStorage.enabled)
+            (eq .Values.config.AwsS3Storage.StorageEncryption.MasterKey "nag")
+            (not .Values.config.AwsS3Storage.StorageEncryption.Enable)) }}
+Note: StorageEncryption not enabled. Using encryption is encouraged.
+      This message can be disabled with --set=config.AwsS3Storage.StorageEncryption.MasterKey=''
+{{- end }}
+
+{{- if (index .Values "oauth2-proxy" "enabled") }}
+{{- if .Values.route.enabled }}
+WARNING: Orthanc is accessible via {{ empty .Values.route.tls.termination | ternary "http" "https" }}://{{ .Values.route.host }}
+without authorization from oauth2-proxy. You probably want to set route.enabled=false.
+{{- end }}
+{{- if .Values.ingress.enabled }}
+WARNING: Orthanc is accessible via {{ empty .Values.ingress.tls | ternary "http" "https" }}://{{ get (first .Values.ingress.hosts) "host" }}
+without authorization from oauth2-proxy. You probably want to set ingress.enabled=false {{- if not (index .Values "oauth2-proxy" "ingress" "enabled") }} and oauth2-proxy.ingress.enabled=true{{ end }}.
+{{- end }}
+{{- if .Values.config.AuthenticationEnabled }}
+WARNING: Orthanc probably won't work behind oauth2-proxy with config.AuthenticationEnabled set to true. You are recommended to set config.AuthenticationEnabled=false.
+{{- end }}
+{{- else }}
+{{- if (and .Values.config.AuthenticationEnabled (empty .Values.config.RegisteredUsers)) }}
+WARNING: config.RegisteredUsers not set. You will not be able to log into Orthanc.
+{{- end }}
+{{- end }}

@@ -1,0 +1,59 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "orthanc.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "orthanc.labels" . | nindent 4 }}
+data:
+  {{- $config := deepCopy .Values.config }}
+  {{- if .Values.crunchyPgo.enabled }}
+    {{- $_ := set $config "PostgreSQL" (
+      mustMerge (get $config "PostgreSQL" | default dict)
+      (dict
+        "EnableIndex" true
+        "EnableStorage" false
+        "ConnectionUri" "${POSTGRES_URI}"
+        "Lock" false
+        "EnableSsl" false
+      )
+    ) }}
+  {{- end }}
+  {{- if .Values.objectStorage.enabled }}
+    {{- /* Configure Orthanc to use the ObjectBucketClaim for storage */}}
+    {{- $_ := set $config "AwsS3Storage" (
+      mustMerge (get $config "AwsS3Storage")
+      (dict
+        "BucketName" "${BUCKET_NAME}"
+        "Region" "${BUCKET_REGION}"
+        "AccessKey" "${AWS_ACCESS_KEY_ID}"
+        "SecretKey" "${AWS_SECRET_ACCESS_KEY}"
+        "Endpoint" (
+          .Values.objectStorage.forceHttp | ternary
+          "http://${BUCKET_HOST}:80/"
+          "https://${BUCKET_HOST}:${BUCKET_PORT}/"
+        )
+        "VirtualAddressing" false
+        "UseTransferManager" false
+      )
+    ) }}
+  {{- end }}
+  {{- $name := include "orthanc.encryption-secret" . -}}
+  {{- $cryptConfig := (get (get $config "AwsS3Storage") "StorageEncryption") }}
+  {{- if (not (empty $name)) }}
+    {{- $_ := set $cryptConfig "MasterKey" (list 1 "/secret/master.key") }}
+  {{- end }}
+  {{- $masterKey := (get $cryptConfig "MasterKey" ) }}
+  {{- if (or (empty $masterKey) (and (typeOf $masterKey | eq "string") (eq $masterKey "nag"))) }}
+    {{- $_ := unset $cryptConfig "MasterKey" }}
+  {{- end }}
+  {{- if (empty (get $config "ConcurrentJobs")) }}
+    {{- $cores := include "orthanc.request-cpu-cores" . | atoi }}
+    {{- if (empty $cores) }}
+      {{- $_ := unset $config "ConcurrentJobs" }}
+    {{- else }}
+      {{- $_ := set $config "ConcurrentJobs" $cores }}
+    {{- end }}
+  {{- end }}
+  orthanc.json: |-
+    {{ mustToPrettyJson $config | nindent 4 }}

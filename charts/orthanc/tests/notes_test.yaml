@@ -1,0 +1,59 @@
+suite: configuration notes/warnings
+templates:
+  - NOTES.txt
+tests:
+  - it: should not show any warnings with oauth2-proxy is configured correctly.
+    set:
+      route.enabled: false
+      ingress.enabled: false
+      oauth2-proxy.enabled: true
+      oauth2-proxy.ingress.enabled: true
+    asserts:
+      - notMatchRegexRaw:
+          pattern: .*WARNING:.*
+  - it: should print a warning about Orthanc being exposed via route, bypassing oauth2-proxy.
+    set:
+      ingress:
+        enabled: true
+        hosts:
+          - host: ingress.example.com
+            paths:
+              - path: /
+                pathType: Prefix
+        tls: []
+      oauth2-proxy:
+        enabled: true
+        ingress:
+          enabled: true
+    asserts:
+      - matchRegexRaw:
+          pattern: |
+            .*WARNING: Orthanc is accessible via http://ingress\.example\.com
+            without authorization from oauth2-proxy\. You probably want to set ingress\.enabled=false\..*
+  - it: should print a warning about Orthanc being exposed via route, and suggest setting oauth2-proxy.ingress.enabled=true instead.
+    set:
+      ingress:
+        enabled: true
+        hosts:
+          - host: ingress.example.com
+            paths:
+              - path: /
+                pathType: Prefix
+        tls: []
+      oauth2-proxy:
+        enabled: true
+        ingress:
+          enabled: false
+    asserts:
+      - matchRegexRaw:
+          pattern: |
+            .*WARNING: Orthanc is accessible via http://ingress\.example\.com
+            without authorization from oauth2-proxy\. You probably want to set ingress\.enabled=false and oauth2-proxy\.ingress\.enabled=true\..*
+  - it: should print a warning about Orthanc not working beind oauth2-proxy with AuthenticationEnabled=true.
+    set:
+      config.AuthenticationEnabled: true
+      oauth2-proxy.enabled: true
+    asserts:
+      - matchRegexRaw:
+          pattern: |
+            .*WARNING: Orthanc probably won't work behind oauth2-proxy with config.AuthenticationEnabled set to true\. You are recommended to set config\.AuthenticationEnabled=false\..*

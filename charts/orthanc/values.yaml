@@ -2,38 +2,61 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-replicaCount: 1
+global:
+  # -- This is for the secrets for pulling an image from a private repository more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+  imagePullSecrets: []
 
-image:
-  repository: docker.io/jodogne/orthanc-plugins
-  pullPolicy: IfNotPresent
-  tag: ""
-
-imagePullSecrets: []
+# -- String to partially override common.names.fullname template (will maintain the release name)
 nameOverride: ""
+# -- String to fully override common.names.fullname template
 fullnameOverride: ""
 
-global:
-  # -- Global default StorageClass for Persistent Volume(s)
-  defaultStorageClass: ""
+# -- Add labels to all the deployed resources
+commonLabels: {}
 
+# -- Add annotations to all the deployed resources
+commonAnnotations: {}
+
+# -- This will set the replicaset count more information can be found here: https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/
+replicaCount: 1
+
+# -- This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
+image:
+  # -- Image repository.
+  # -- Note: jodogne/orthanc-plugins is preferred over orthancteam/orthanc
+  # --       because the compressed image size is smaller (80MB v.s. 1.1GB)
+  repository: docker.io/jodogne/orthanc-plugins
+  # -- This sets the pull policy for images.
+  pullPolicy: IfNotPresent
+  # -- Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+
+# -- This section builds out the service account more information can be found here: https://kubernetes.io/docs/concepts/security/service-accounts/
 serviceAccount:
-  # Specifies whether a service account should be created
+  # -- Specifies whether a service account should be created
   create: true
-  # Annotations to add to the service account
+  # -- Automatically mount a ServiceAccount's API credentials?
+  automount: true
+  # -- Annotations to add to the service account
   annotations: {}
-  # The name of the service account to use.
-  # If not set and create is true, a name is generated using the fullname template
+  # -- The name of the service account to use.
+  # -- If not set and create is true, a name is generated using the fullname template
   name: ""
 
-terminationGracePeriodSeconds: 10
+# -- Annotations for deployment
+deploymentAnnotations: {}
 
+# -- This is for setting Kubernetes Annotations to a Pod.
+# -- For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
 podAnnotations: {}
+# -- This is for setting Kubernetes Labels to a Pod.
+# -- For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+podLabels: {}
 
-# podSecurityContext:
-#   fsGroup: 2000
+podSecurityContext: {}
+  # fsGroup: 2000
 
-securityContext: {}
+containerSecurityContext: {}
   # capabilities:
   #   drop:
   #   - ALL
@@ -41,104 +64,101 @@ securityContext: {}
   # runAsNonRoot: true
   # runAsUser: 1000
 
+# -- Configuration of emptyDir volumes
+emptyDirs:
+  # -- Configuration of the emptyDir volume used for config.TemporaryDirectory
+  temporaryDirectory: {}
+    # sizeLimit: 500Mi
+    # medium: Memory
+
+# -- This is for setting up a service more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/
 service:
-  enabled: true
+  # -- Create the service
+  create: true
+  # -- Service annotations
+  annotations: {}
+  # -- This sets the service type more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
   type: ClusterIP
-  port: 8042
-  # nodePort:
+  # -- This sets the ports more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#field-spec-ports
+  ports:
+    http: 8042
+    dicom: 4242
+  # -- If service.type=NodePort, this sets the nodePort.
+  # nodePorts:
+  #   http: 30842
+  #   dicom: 30442
 
-dicomService:
-  enabled: true
-  type: ClusterIP
-  port: 4242
-  # nodePort:
+# -- This block is for setting up the ingress for more information can be found here: https://kubernetes.io/docs/concepts/services-networking/ingress/
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
 
-resources:
-  limits:
-    cpu: 100m
-    memory: 256Mi
-  requests:
-    cpu: 100m
-    memory: 256Mi
+# -- OpenShift route
+route:
+  enabled: false
+  annotations: {}
+  host: chart-example.local
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+    destinationCACertificate: ''
 
-config:
-  # The logical name of this instance of Orthanc. This one is
-  # displayed in Orthanc Explorer and at the URI "/system".
-  name: "Orthanc"
-  # Enable the transparent compression of the DICOM instances
-  storageCompression: false
-  # Action to take when the maximum storage is reached.
-  # By default, the patients are recycled ("Recycle" mode).
-  # In "Reject" mode, the sender will receive a 0xA700 DIMSE status code
-  # if the instance was sent through C-Store, a 507 HTTP status code
-  # if using the REST API and a 0xA700 Failure reason when using
-  # DicomWeb Stow-RS 
-  # Allowed values: "Recycle", "Reject"
-  # (new in Orthanc 1.11.2)
-  maximumStorageMode: Reject
-  # Maximum size of the storage cache in MB.  The storage cache
-  # is stored in RAM and contains a copy of recently accessed
-  # files (written or read).  A value of "0" indicates the cache
-  # is disabled.  (new in Orthanc 1.10.0)
-  maximumStorageCacheSize: 0
+# -- Set container requests and limits for different resources like CPU or memory (essential for production workloads)
+resources: {}
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
 
-  # The DICOM Application Entity Title
-  dicomAet: "ORTHANC"
-  # Check whether the called AET corresponds during a DICOM request
-  dicomCheckCalledAet: false
+livenessProbe:
+  httpGet:
+    path: /system
+    port: http
 
-  # The default encoding that is assumed for DICOM files without
-  # "SpecificCharacterSet" DICOM tag, and that is used when answering
-  # C-Find requests (including worklists). The allowed values are
-  # "Ascii", "Utf8", "Latin1", "Latin2", "Latin3", "Latin4",
-  # "Latin5", "Cyrillic", "Windows1251", "Arabic", "Greek", "Hebrew",
-  # "Thai", "Japanese", and "Chinese".
-  defaultEncoding: "Latin1"
+readinessProbe:
+  httpGet:
+    path: /system
+    port: http
 
-  # Set the timeout (in seconds) after which the DICOM associations
-  # are closed by the Orthanc SCP (server) if no further DIMSE
-  # command is received from the SCU (client).
-  dicomScpTimeout: 30
+# -- This section is for setting up autoscaling more information can be found here: https://kubernetes.io/docs/concepts/workloads/autoscaling/
+autoscaling:
+  enabled: false
+  annotations: {}
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
 
-  # The timeout (in seconds) after which the DICOM associations are
-  # considered as closed by the Orthanc SCU (client) if the remote
-  # DICOM SCP (server) does not answer.
-  dicomScuTimeout: 10
+# -- Additional volumes on the output Deployment definition.
+extraVolumes: []
+# - name: foo
+#   secret:
+#     secretName: mysecret
+#     optional: false
 
-  # Whether or not the password protection is enabled
-  AuthenticationEnabled: true
+# -- Additional volumeMounts on the output Deployment definition.
+extraVolumeMounts: []
+# - name: foo
+#   mountPath: "/etc/foo"
+#   readOnly: true
 
-  # The list of the registered users. Because Orthanc uses HTTP
-  # Basic Authentication, the passwords are stored as plain text.
-  registeredUsers: {}
-    # orthanc: orthanc
+extraEnv: []
 
-  # The list of the known DICOM modalities
-  #
-  # A fourth parameter is available to enable patches for a
-  # specific PACS manufacturer. The allowed values are currently
-  # "Generic" (default value), "StoreScp" (storescp tool from
-  # DCMTK), "ClearCanvas", "MedInria", "Dcm4Chee", "SyngoVia",
-  # "AgfaImpax" (Agfa IMPAX), "EFilm2" (eFilm version 2), and
-  # "Vitrea". This parameter is case-sensitive.
-  dicomModalities: {}
-    # "clearcanvas" : [ "CLEARCANVAS", "192.168.1.1", 104, "ClearCanvas" ]
-
-  # Whether Orthanc monitors its metrics (new in Orthanc 1.5.4). If
-  # set to "true", the metrics can be retrieved at
-  # "/tools/metrics-prometheus" formetted using the Prometheus
-  # text-based exposition format.
-  metricsEnabled: true
-
-ohif:
-  enabled: true
-  # OHIF custom config file
-  # https://orthanc.uclouvain.be/book/plugins/ohif.html#user-configuration-of-ohif
-  # userConfiguration: |
-  #   window.config = {
-  #     extensions: [],
-  #     modes: []
-  #   }
+extraEnvFrom: []
 
 nodeSelector: {}
 
@@ -146,12 +166,418 @@ tolerations: []
 
 affinity: {}
 
-persistence:
-  storage:
-    size: 1Gi
-    # storageClass: my-storage-class
-    accessModes: [ ReadWriteOnce ]
-  index:
-    size: 1Gi
-    # storageClass: my-storage-class
-    accessModes: [ ReadWriteOnce ]
+# -- ObjectBucketClaim configuration
+objectStorage:
+  enabled: true  # TODO default should maybe be false...
+  storageClass: openshift-storage.noobaa.io
+  annotations: {}
+  additionalConfig: {}
+  # -- Ignore BUCKET_PORT and use HTTP with port 80.
+  forceHttp: false
+
+# -- Use the CrunchyData PostgreSQL Operator to create a PostgreSQL database
+crunchyPgo:
+  enabled: true  # TODO set to false
+  annotations: {}
+  spec:
+    backups: {}
+    instances:
+      - dataVolumeClaimSpec:
+          accessModes: [ ReadWriteOncePod ]
+          resources:
+            requests:
+              storage: 1Gi
+          storageClassName:
+        name: instance1
+        replicas: 1
+        resources: {}
+          # limits:
+          #   cpu: 500m
+          #   memory: 512Mi
+          # requests:
+          #   cpu: 250m
+          #   memory: 256Mi
+    port: 5432
+    # NOTE: Orthanc does not support Postgres version 17.
+    postgresVersion: 16
+    users:
+      - name: orthanc
+        databases:
+          - orthanc
+        options: 'SUPERUSER'  # required because Orthanc uses the public schema
+
+# -- Create an initContainer which waits for PostgreSQL to be ready.
+pgReady:
+  # -- Enable the pg-wait initContainer. This option effective only if
+  # -- crunchyPgo.enabled=true.
+  enabled: true
+  image: docker.io/alpine/psql:16.3
+  command:
+    - sh
+    - -c
+    - |
+        start=$(date '+%s')
+        until pg_isready -d '$(POSTGRES_DB)' -h '$(POSTGRES_HOST)' -p '$(POSTGRES_PORT)' -U '$(POSTGRES_USER)' -q; do
+          sleep 1
+          now=$(date '+%s')
+          elapsed="$((now-start))"
+          if [ "$elapsed" -gt '300' ]; then
+            echo "timed out waiting for PostgreSQL."
+            exit 1
+          fi
+        done
+  containerSecurityContext: {}
+    # capabilities:
+    #   drop:
+    #   - ALL
+    # readOnlyRootFilesystem: true
+    # runAsNonRoot: true
+    # runAsUser: 2000
+  resources: {}
+    # limits:
+    #   cpu: 250m
+    #   memory: 128Mi
+    # requests:
+    #   cpu: 250m
+    #   memory: 128Mi
+
+# -- Orthanc configuration
+# -- Ref: https://orthanc.uclouvain.be/book/users/configuration.html
+# -- Do not put secrets in here. Use the environment variable configuration
+# -- syntax and declare values for extraEnv or extraEnvFrom.
+config:
+  # -- The logical name of this instance of Orthanc. This one is
+  # -- displayed in Orthanc Explorer and at the URI "/system".
+  Name: Cloud Native Orthanc
+  # -- Enable the transparent compression of the DICOM instances
+  StorageCompression: false
+
+  # -- List of paths to the plugins that are to be loaded into this
+  # -- instance of Orthanc (e.g. "./libPluginTest.so").
+  # -- These paths can refer to folders, in which case they will be
+  # -- scanned non-recursively to find shared libraries.
+  Plugins:
+    ## -------- Common Plugins --------
+    - /usr/local/share/orthanc/plugins/libConnectivityChecks.so
+    - /usr/local/share/orthanc/plugins/libDelayedDeletion.so
+    - /usr/local/share/orthanc/plugins/libHousekeeper.so
+    - /usr/local/share/orthanc/plugins/libModalityWorklists.so
+    - /usr/local/share/orthanc/plugins/libMultitenantDicom.so
+    - /usr/local/share/orthanc/plugins/libOrthancDicomWeb.so
+    - /usr/local/share/orthanc/plugins/libOrthancGdcm.so
+    - /usr/local/share/orthanc/plugins/libOrthancTransfers.so
+
+    ## -------- Storage and Database ---------
+    - /usr/local/share/orthanc/plugins/libOrthancPostgreSQLIndex.so
+    - /usr/local/share/orthanc/plugins/libOrthancAwsS3Storage.so
+
+    ## -------- Optional Servers --------
+    # - /usr/local/share/orthanc/plugins/libOrthancAuthorization.so
+    # - /usr/local/share/orthanc/plugins/libServeFolders.so
+    # - /usr/local/share/orthanc/plugins/libOrthancIndexer.so
+
+    ## -------- Web user interfaces --------
+
+    ## Orthanc Explorer 2
+    ## https://orthanc.uclouvain.be/book/plugins/orthanc-explorer-2.html
+    - /usr/local/share/orthanc/plugins/libOrthancExplorer2.so
+
+    ## OHIF Viewer
+    ## https://orthanc.uclouvain.be/book/plugins/ohif.html
+    - /usr/local/share/orthanc/plugins/libOrthancOHIF.so
+
+    ## Kitware's VolView web interface
+    ## https://orthanc.uclouvain.be/book/plugins/volview.html
+    # - /usr/local/share/orthanc/plugins/libOrthancVolView.so
+
+    ## Import data from The Cancer Imaging Archive (TCIA)
+    ## https://orthanc.uclouvain.be/book/plugins/tcia.html
+    # - /usr/local/share/orthanc/plugins/libOrthancTcia.so
+
+    ## Orthanc Web Viewer
+    ## https://orthanc.uclouvain.be/book/plugins/webviewer.html
+    # - /usr/local/share/orthanc/plugins/libOrthancWebViewer.so
+
+    ## Stone Web viewer
+    ## https://orthanc.uclouvain.be/book/plugins/stone-webviewer.html
+    # - /usr/local/share/orthanc/plugins/libStoneWebViewer.so
+    # - /usr/local/share/orthanc/plugins/libRtViewerPlugin.so
+
+    ## -------- File Formats --------
+
+    ## Adds a button for converting DICOM to NIFTI-1.
+    ## https://orthanc.uclouvain.be/book/plugins/neuro.html
+    - /usr/local/share/orthanc/plugins/libOrthancNeuro.so
+
+    ## Attach STL files and generate STL meshes
+    ## https://orthanc.uclouvain.be/book/plugins/stl.html
+    # - /usr/local/share/orthanc/plugins/libOrthancSTL.so
+
+    ## Whole-slide microscopic imaging
+    ## https://orthanc.uclouvain.be/book/plugins/wsi.html
+    # - /usr/local/share/orthanc/plugins/libOrthancWSI.so
+
+    ## -------- Other databases --------
+    ## (you probably don't want these)
+    # - /usr/local/share/orthanc/plugins/libOrthancPostgreSQLStorage.so
+    # - /usr/local/share/orthanc/plugins/libOrthancMySQLIndex.so
+    # - /usr/local/share/orthanc/plugins/libOrthancMySQLStorage.so
+    # - /usr/local/share/orthanc/plugins/libOrthancOdbcIndex.so
+    # - /usr/local/share/orthanc/plugins/libOrthancOdbcStorage.so
+
+  # -- OHIF plugin configuration
+  # -- https://orthanc.uclouvain.be/book/plugins/ohif.html
+  OHIF:
+    DataSource: dicom-web
+
+  # -- Maximum number of processing jobs that are simultaneously running
+  # -- at any given time. A value of "0" indicates to use all the
+  # -- available CPU logical cores. To emulate Orthanc <= 1.3.2, set
+  # -- this value to "1".
+  # -- If unset, Helm will set ConcurrentJobs to the value of
+  # -- .resources.requests.cpu converted to number of cores.
+  ConcurrentJobs:
+
+  # -- Configuration of S3 storage.
+  # -- Note: if objectStorage.enabled=true, then the values for
+  # --       BucketName, Region, AccessKey, SecretKey, Endpoint,
+  # --       VirtualAddressing, and UseTransferManager will be
+  # --       set automatically to use the configuration provided
+  # --       by the ObjectBucketClaim's corresponding Secret and
+  # --       ConfigMap.
+  AwsS3Storage:
+    # -- Optional client-side encryption.
+    StorageEncryption:
+      # -- Enable encryption.
+      Enable: false
+      # -- Key for AES encryption.
+      # -- This helm chart supports special string values:
+      # -- - null: omit the MasterKey field from the configuration.
+      # -- - "nag": if StorageEncryption.Enable=false, print a suggestion to enable it.
+      # -- - "auto": on first install, generate random secret.
+      #              If using helmfile, you must use --diff-args=--dry-run=server
+      MasterKey: "nag"
+      # MaxConcurrentInputSize: 1024  # MB
+
+  # -- Enable the HTTP server. If this parameter is set to "false",
+  # -- Orthanc acts as a pure DICOM server. The REST API and Orthanc
+  # -- Explorer will not be available.
+  HttpServerEnabled: true
+  # -- HTTP port for the REST services and for the GUI
+  HttpPort: 8042
+
+  # -- Enable HTTP compression to improve network bandwidth utilization,
+  # -- at the expense of more computations on the server. Orthanc
+  # -- supports the "gzip" and "deflate" HTTP encodings.
+  # -- When working on a LAN or on localhost, you should typically set
+  # -- this configuration to false while when working on low-bandwidth,
+  # -- you should set it to true.
+  # -- N.B.: HttpCompressionEnabled is set to "false" by default in upstream Orthanc,
+  # --       however it is set to "true" by default here in the orthanc chart.
+  HttpCompressionEnabled: true
+
+  # -- Enable the publication of the content of the Orthanc server as a
+  # -- WebDAV share (new in Orthanc 1.8.0). On the localhost, the WebDAV
+  # -- share is mapped as "http://localhost:8042/webdav/".
+  WebDavEnabled: true
+  # -- Whether to allow deletions through the WebDAV share. This is
+  # -- disabled by default to avoid accidental loss of DICOM instances.
+  WebDavDeleteAllowed: false
+  # -- Whether to allow uploads through the WebDAV share.
+  WebDavUploadAllowed: true
+
+  # Configuration of the DICOM server
+  # ---------------------------------
+
+  # -- Enable the DICOM server. If this parameter is set to "false",
+  # -- Orthanc acts as a pure REST server. It will not be possible to
+  # -- receive files or to do query/retrieve through the DICOM protocol.
+  DicomServerEnabled: true
+  # -- The DICOM Application Entity Title (cannot be longer than 16
+  # -- characters)
+  DicomAet: orthanc
+  # -- Check whether the called AET corresponds to the AET of Orthanc
+  # -- during an incoming DICOM SCU request
+  DicomCheckCalledAet: false
+  # -- The DICOM port
+  DicomPort: 4242
+  # -- Whether Orthanc accepts to act as C-STORE SCP for unknown storage
+  # -- SOP classes (aka. "promiscuous mode")
+  UnknownSopClassAccepted: false
+  # -- Set the timeout (in seconds) after which the DICOM associations
+  # -- are closed by the Orthanc SCP (server) if no further DIMSE
+  # -- command is received from the SCU (client).
+  # -- A value of 0 means "no timeout".
+  DicomScpTimeout: 30
+
+  # Security-related options for the HTTP server
+  # --------------------------------------------
+  # N.B.: default configurations are different from upstream with the
+  #       expectation that this chart is used to deploy Orthanc in
+  #       a Kubernetes environment.
+  RemoteAccessAllowed: true
+  SslEnabled: false
+  
+  # -- Whether or not the password protection is enabled (using HTTP
+  # -- basic access authentication).
+  # -- HINT: if oauth2-proxy.enabled=true, set AuthenticationEnabled=false.
+  AuthenticationEnabled: false
+  # -- The list of the registered users. Because Orthanc uses HTTP
+  # -- Basic Authentication, the passwords are stored as plain text.
+  # RegisteredUsers:
+  #   rudolph: rudolph1234
+  #   ellen: ellen1234
+
+  # Network Topology
+  # ----------------
+  # -- The list of the known DICOM modalities. This option is ignored if
+  # -- "DicomModalitiesInDatabase" is set to "true", in which case you
+  # -- must use the REST API to define modalities.
+  DicomModalities: {}
+  #  "sample" : [ "STORESCP", "127.0.0.1", 2000 ]
+  #  "vitrea" : [ "VITREA", "192.168.1.1", 104, "Vitrea" ]
+
+  # -- Whether to store the DICOM modalities in the Orthanc database
+  # -- instead of in this configuration file (new in Orthanc 1.5.0)
+  DicomModalitiesInDatabase: false
+  # -- The timeout (in seconds) after which the DICOM associations are
+  # -- considered as closed by the Orthanc SCU (client) if the remote
+  # -- DICOM SCP (server) does not answer.
+  # -- A value of 0 means "no timeout".
+  DicomScuTimeout: 10
+  # -- Number of threads that are used by the embedded DICOM server.
+  # -- This defines the number of concurrent DICOM operations that can
+  # -- be run when Orthanc is acting as SCP. 
+  # -- Note: This is not limiting the number of concurrent connections
+  # -- but the number of concurrent DICOM operations.
+  # -- E.g, with a single thread, if a C-Find is received during
+  # -- e.g the transcoding of an incoming C-Store, the C-Find will 
+  # -- be processed only at the end of the C-Store operation but both
+  # -- DICOM assocations will remain active. 
+  # -- (new in Orthanc 1.10.0, before this version, the value was 
+  # -- fixed to 4)
+  DicomThreadsCount: 4
+
+  # -- The list of the known Orthanc peers. This option is ignored if
+  # -- "OrthancPeersInDatabase" is set to "true", in which case you must
+  # -- use the REST API to define Orthanc peers.
+  OrthancPeers: {}
+  # -- Whether to store the Orthanc peers in the Orthanc database
+  # -- instead of in this configuration file (new in Orthanc 1.5.0)
+  OrthancPeersInDatabase: false
+
+  # -- Parameters of the HTTP proxy to be used by Orthanc. If set to the
+  # -- empty string, no HTTP proxy is used.
+  HttpProxy: ""
+
+  # -- If set to "true", debug messages from libcurl will be issued
+  # -- whenever Orthanc makes an outgoing HTTP request. This is notably
+  # -- useful to debug HTTPS-related problems.
+  HttpVerbose: false
+  # -- Set the timeout for HTTP requests issued by Orthanc (in seconds).
+  HttpTimeout: 60
+
+  # -- Configuration of Orthanc Explorer 2
+  # -- https://orthanc.uclouvain.be/book/plugins/orthanc-explorer-2.html#configuration
+  OrthancExplorer2:
+    IsDefaultOrthancUI: true
+    Theme: "dark"
+
+  # -- Configuration of OHIF Viewer plugin
+  # -- https://orthanc.uclouvain.be/book/plugins/ohif.html#configuration
+  OHIF:
+    DataSource: "dicom-web"
+
+  # -- Configuration of DICOMweb
+  # -- https://orthanc.uclouvain.be/book/plugins/dicomweb.html#server-related-options
+  DicomWeb:
+    Enable: true
+
+  # -- Path to the directory where Orthanc stores its large temporary
+  # -- files. The content of this folder can be safely deleted once
+  # -- Orthanc is stopped. The folder must exist. The corresponding
+  # -- filesystem must be properly sized, given that for instance a ZIP
+  # -- archive of DICOM images created by a job can weight several GBs,
+  # -- and that there might be up to "min(JobsHistorySize,
+  # -- MediaArchiveSize)" archives to be stored simultaneously.
+  # -- NOTE: an emptyDir volume will be created for this location,
+  #          which can be configured by emptyDirs.temporaryDirectory.
+  TemporaryDirectory: /tmp/Orthanc
+
+# -- oauth2-proxy subchart configuration.
+# -- Run `helm show values oauth2-proxy/oauth2-proxy` to show full configuration options.
+oauth2-proxy:
+  # -- Install oauth2-proxy
+  enabled: false
+
+  # Oauth client configuration specifics
+  config:
+    # Add config annotations
+    annotations: {}
+    # OAuth client ID
+    clientID: "XXXXXXX"
+    # OAuth client secret
+    clientSecret: "XXXXXXXX"
+    # Create a new secret with the following command
+    # openssl rand -base64 32 | head -c 32 | base64
+    # Use an existing secret for OAuth2 credentials (see secret.yaml for required fields)
+    # Example:
+    # existingSecret: secret
+    cookieSecret: "XXXXXXXXXXXXXXXX"
+    configFile: |-
+        email_domains = [ "*" ]
+        upstreams = [ "http://{{ .Values.image.repository }}" ]  # TODO left off here: how can I pass parent values to subchart?
+      # Custom configuration file: oauth2_proxy.cfg
+      # configFile: |-
+      #   pass_basic_auth = false
+      #   pass_access_token = true
+      # Use an existing config map (see configmap.yaml for required fields)
+      # Example:
+      # existingConfig: config
+
+  alphaConfig:
+    enabled: false
+
+  image:
+    repository: "quay.io/oauth2-proxy/oauth2-proxy"
+    # appVersion is used by default
+    tag: ""
+    pullPolicy: "IfNotPresent"
+    command: []
+
+  ingress:
+    enabled: false
+    # className: nginx
+    path: /
+    # Only used if API capabilities (networking.k8s.io/v1) allow it
+    pathType: ImplementationSpecific
+    # Used to create an Ingress record.
+    # hosts:
+      # - chart-example.local
+    # Extra paths to prepend to every host configuration. This is useful when working with annotation based services.
+    # Warning! The configuration is dependant on your current k8s API version capabilities (networking.k8s.io/v1)
+    # extraPaths:
+    # - path: /*
+    #   pathType: ImplementationSpecific
+    #   backend:
+    #     service:
+    #       name: ssl-redirect
+    #       port:
+    #         name: use-annotation
+    labels: {}
+    # annotations:
+    #   kubernetes.io/ingress.class: nginx
+    #   kubernetes.io/tls-acme: "true"
+    # tls:
+      # Secrets must be manually created in the namespace.
+      # - secretName: chart-example-tls
+      #   hosts:
+      #     - chart-example.local
+
+  resources: {}
+    # limits:
+    #   cpu: 100m
+    #   memory: 300Mi
+    # requests:
+    #   cpu: 100m
+    #   memory: 300Mi

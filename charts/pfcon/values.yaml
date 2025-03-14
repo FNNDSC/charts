@@ -92,6 +92,9 @@ pman:
 
   # It is unnecessary to increase pman's resources to above the minimum because
   # pman doesn't do anything besides sending and receiving HTTP requests.
+  # -- Resources for pman container.
+  # -- All pman does all day is send and receive HTTP requests, so its CPU usage stays below 0.5 even with --workers=32.
+  # -- It uses <1GiB memory with --workers=4, <2GiB memory with --workers=32.
   resources:
     limits:
       cpu: 200m

@@ -1,0 +1,193 @@
+{{- $image := printf "%s:%s" .Values.image.repository (.Values.image.tag | default .Chart.AppVersion) -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "orthanc.fullname" . }}
+  labels:
+    {{- include "orthanc.labels" . | nindent 4 }}
+  {{- with (merge .Values.deploymentAnnotations .Values.commonAnnotations )}}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "orthanc.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ .Values.config | mustToJson | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "orthanc.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if (or .Values.serviceAccount.create .Values.serviceAccount.name) }}
+      serviceAccountName: {{ include "orthanc.serviceAccountName" . }}
+      {{- end }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      initContainers:
+        {{- with .Values.pgReady }}
+        {{- if (and $.Values.crunchyPgo.enabled .enabled) }}
+        - name: pg-wait
+          image: {{ .image }}
+          {{- with .command }}
+          command:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          env:
+            {{- with (include "orthanc.crunchy-secret" $ ) }}
+            - name: POSTGRES_URI
+              valueFrom:
+                secretKeyRef:
+                  name: {{ . }}
+                  key: uri
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ . }}
+                  key: user
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: {{ . }}
+                  key: dbname
+            - name: POSTGRES_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: {{ . }}
+                  key: host
+            - name: POSTGRES_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ . }}
+                  key: port
+            {{- end }}
+          {{- with .containerSecurityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+        {{- end }}
+        {{- end }}
+      containers:
+        - name: orthanc
+          {{- with .Values.containerSecurityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          image: {{ $image }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            {{- if .Values.config.HttpServerEnabled }}
+            - name: http
+              containerPort: {{ .Values.config.HttpPort }}
+              protocol: TCP
+            {{- end }}
+            {{- if .Values.config.DicomServerEnabled }}
+            - name: dicom
+              containerPort: {{ .Values.config.DicomPort }}
+              protocol: TCP
+            {{- end }}
+          {{- with .Values.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          env:
+            {{- with (include "orthanc.crunchy-secret" . ) }}
+            - name: POSTGRES_URI
+              valueFrom:
+                secretKeyRef:
+                  name: {{ . }}
+                  key: uri
+            {{- end }}
+            {{- if .Values.objectStorage.enabled }}
+            - name: AWS_EC2_METADATA_DISABLED
+              value: "true"
+            {{- end }}
+            {{- with .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          envFrom:
+            {{- if .Values.objectStorage.enabled }}
+            - configMapRef:
+                name: {{ include "orthanc.bucket-name" . }}
+            - secretRef:
+                name: {{ include "orthanc.bucket-name" . }}
+            {{- end }}
+            {{- with .Values.extraEnvFrom }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          volumeMounts:
+            - name: config
+              readOnly: true
+              mountPath: /etc/orthanc
+            - name: tmp
+              mountPath: {{ .Values.config.TemporaryDirectory }}
+            {{- with include "orthanc.encryption-secret" . }}
+            - name: encryption-key
+              mountPath: /secret
+              readOnly: true
+            {{- end }}
+            {{- with .Values.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "orthanc.fullname" . }}
+        - name: tmp
+          emptyDir:
+            {{- with .Values.emptyDirs.temporaryDirectory }}
+            {{- toYaml . | nindent 10 }}
+            {{- end }}
+        {{- with include "orthanc.encryption-secret" . }}
+        - name: encryption-key
+          secret:
+            secretName: {{ . }}
+            optional: false
+            items:
+              - key: key-1
+                path: master.key
+        {{- end }}
+
+        {{- with .Values.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

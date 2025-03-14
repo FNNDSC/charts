@@ -1,0 +1,15 @@
+{{- if .Values.crunchyPgo.enabled }}
+apiVersion: postgres-operator.crunchydata.com/v1beta1
+kind: PostgresCluster
+metadata:
+  name: {{ include "orthanc.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "orthanc.labels" . | nindent 4 }}
+  {{- with (merge .Values.crunchyPgo.annotations .Values.commonAnnotations )}}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- toYaml .Values.crunchyPgo.spec | nindent 2 }}
+{{- end }}
