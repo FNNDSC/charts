@@ -1,0 +1,37 @@
+{{- /* Generate random key for AES encryption on first install.
+       Lookup value for subsequent upgrades.
+*/ -}}
+{{- define "orthanc.encryption-key" -}}
+{{- $name := include "orthanc.encryption-secret" . -}}
+{{- with (lookup "v1" "Secret" .Release.Namespace $name) -}}
+  {{- if (hasKey .data "key-1" ) -}}
+    key-1: {{ index .data "key-1" | quote }}  # lookup
+  {{- else -}}
+    {{- printf "secret/%s does not have key-1" $name | fail }}
+  {{- end -}}
+{{- else -}}
+  {{- if (eq .Release.Revision 1) -}}
+    key-1: {{ randAscii 32 | b64enc | b64enc | quote }}  # randomly generated
+  {{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{- $name := include "orthanc.encryption-secret" . -}}
+{{- if (not (empty $name)) }}
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: {{ $name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "orthanc.labels" . | nindent 4 }}
+  annotations:
+    kubernetes.io/description: AES encryption key used for Orthanc client-side encryption of DICOM data in object storage.
+data:
+  {{- with include "orthanc.encryption-key" . }}
+    {{- . | nindent 2 }}
+  {{- else }}
+    {{- printf ".Release.Revision=%d, StorageEncryption.Enable=true, and StorageEncryption.MasterKey=\"auto\", but cannot lookup secret." .Release.Revision | fail }}
+  {{- end }}
+{{- end }}

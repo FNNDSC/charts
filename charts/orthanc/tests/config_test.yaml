@@ -1,0 +1,52 @@
+suite: Orthanc config
+release:
+  revision: 1
+templates:
+  - config.yaml
+tests:
+  - it: should not set ConcurrentJobs when resources.requests is empty
+    asserts:
+      - notMatchRegex:
+          path: data["orthanc.json"]
+          pattern: .*ConcurrentJobs.*
+  - it: should set ConcurrentJobs to 1 when resources.requests<1000m
+    set:
+      resources.requests.cpu: 100m
+    asserts:
+      - matchRegex:
+          path: data["orthanc.json"]
+          pattern: |-
+            .*"ConcurrentJobs": 1(,|\n).*
+  - it: should set ConcurrentJobs to 2 when resources.requests=2500m
+    set:
+      resources.requests.cpu: 2500m
+    asserts:
+      - matchRegex:
+          path: data["orthanc.json"]
+          pattern: |-
+            .*"ConcurrentJobs": 2(,|\n).*
+  - it: should set ConcurrentJobs to 4 when resources.requests=4
+    set:
+      resources.requests.cpu: 4
+    asserts:
+      - matchRegex:
+          path: data["orthanc.json"]
+          pattern: |-
+            .*"ConcurrentJobs": 4(,|\n).*
+  - it: should not have MasterKey when StorageEncryption.Enable=false
+    set:
+      config.AwsS3Storage.StorageEncryption.Enable: false
+    asserts:
+      - notMatchRegex:
+          path: data["orthanc.json"]
+          pattern: |-
+              .*"MasterKey": \[.*
+  - it: should set a value for MasterKey when StorageEncryption.Enable=true and MasterKey="auto"
+    set:
+      config.AwsS3Storage.StorageEncryption.Enable: true
+      config.AwsS3Storage.StorageEncryption.MasterKey: "auto"
+    asserts:
+      - matchRegex:
+          path: data["orthanc.json"]
+          pattern: |-
+            .*"MasterKey": \[.*

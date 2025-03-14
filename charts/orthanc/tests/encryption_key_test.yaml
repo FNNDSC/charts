@@ -1,0 +1,28 @@
+suite: encryption-key.yaml
+templates:
+  - encryption-key.yaml
+release:
+  name: test-encryption-key
+  revision: 1
+tests:
+  - it: should create a random key when MasterKey="auto"
+    set:
+      config.AwsS3Storage.StorageEncryption.Enable: true
+      config.AwsS3Storage.StorageEncryption.MasterKey: "auto"
+    asserts:
+      - containsDocument:
+          apiVersion: v1
+          kind: Secret
+          name: test-encryption-key-orthanc-encryption
+  - it: should not create the secret when encryption is disabled
+    set:
+      config.AwsS3Storage.StorageEncryption.Enable: false
+    asserts:
+      - hasDocuments:
+          count: 0
+  - it: should not create the secret when encryption key specified manually
+    set:
+      config.AwsS3Storage.StorageEncryption.MasterKey: [1, "/path/to/master.key"]
+    asserts:
+      - hasDocuments:
+          count: 0
