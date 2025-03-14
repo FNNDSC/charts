@@ -12,6 +12,7 @@ A [Helm](https://helm.sh/) Chart for deploying [Orthanc](https://orthanc.uclouva
   and the [ObjectBucketClaim](https://rook.io/docs/rook/v1.10/Storage-Configuration/Object-Storage-RGW/ceph-object-bucket-claim/) CRD
   (available on OpenShift as _Red Hat OpenShift Container Storage_ via NooBaa) for a cloud-native, highly-scalable deployment.
   - These integrations are optional. Using a SQLite index and filesystem storage are both supported with filesystem-type PersistentVolumes.
+- Automatic setup of client-side S3 object storage encryption.
 - Optionally enable [oauth2-proxy](https://oauth2-proxy.github.io/oauth2-proxy/) as a subchart for single-sign-on (SSO).
 - Unit-tested using [helm-unittest](https://github.com/helm-unittest/helm-unittest).
 - Default UI is [Orthanc Explorer 2](https://orthanc.uclouvain.be/book/plugins/orthanc-explorer-2.html) with dark theme.
