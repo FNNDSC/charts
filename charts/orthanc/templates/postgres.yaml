@@ -1,4 +1,7 @@
 {{- if .Values.crunchyPgo.enabled }}
+{{- if .Values.persistence.index.enabled }}
+  {{- fail "Cannot enable both crunchyPgo and persistence.index" }}
+{{- end }}
 apiVersion: postgres-operator.crunchydata.com/v1beta1
 kind: PostgresCluster
 metadata:

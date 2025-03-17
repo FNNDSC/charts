@@ -26,7 +26,27 @@ helm show values fnndsc/orthanc > values.yaml
 helm upgrade --install orthanc fnndsc/orthanc -f values.yaml
 ```
 
-Alternatively, see our production Helmfile example here:
+### Example `values.yaml` Configuration
+
+#### Basic Orthanc with Filesystem Storage and One User
+
+```yaml
+persistence:
+  index:
+    enabled: true
+  storage:
+    enabled: true
+
+config:
+  Name: Basic Orthanc
+  AuthenticationEnabled: true
+  RegisteredUsers:
+    admin: password
+```
+
+#### Orthanc using CrunchyData PGO, S3 ObjectBucketClaim, and OIDC Authentication
+
+See our production Helmfile example here:
 https://github.com/FNNDSC/NERC/blob/ebfe519f23bc83e49b5bdd75e1bb1b9890811cba/blt/helmfile.d/03-orthanc.yaml
 
 ## Alternatives

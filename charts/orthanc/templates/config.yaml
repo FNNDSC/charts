@@ -7,6 +7,15 @@ metadata:
     {{- include "orthanc.labels" . | nindent 4 }}
 data:
   {{- $config := deepCopy .Values.config }}
+
+  {{- /* Metrics */}}
+  {{- if (and (typeOf .Values.config.MetricsEnabled | eq "bool")
+              (ne .Values.config.MetricsEnabled .Values.metrics.enabled)) }}
+    {{- fail "config.MetricsEnabled and metrics.enabled have conflicting values." }}
+  {{- end }}
+  {{- $_ := set $config "MetricsEnabled" .Values.metrics.enabled }}
+
+  {{- /* Postgres Operator */}}
   {{- if .Values.crunchyPgo.enabled }}
     {{- $_ := set $config "PostgreSQL" (
       mustMerge (get $config "PostgreSQL" | default dict)
@@ -19,6 +28,8 @@ data:
       )
     ) }}
   {{- end }}
+
+  {{- /* Object Storage */}}
   {{- if .Values.objectStorage.enabled }}
     {{- /* Configure Orthanc to use the ObjectBucketClaim for storage */}}
     {{- $_ := set $config "AwsS3Storage" (
@@ -47,6 +58,8 @@ data:
   {{- if (or (empty $masterKey) (and (typeOf $masterKey | eq "string") (eq $masterKey "nag"))) }}
     {{- $_ := unset $cryptConfig "MasterKey" }}
   {{- end }}
+
+  {{- /* Resource Limits */}}
   {{- if (empty (get $config "ConcurrentJobs")) }}
     {{- $cores := include "orthanc.request-cpu-cores" . | atoi }}
     {{- if (empty $cores) }}

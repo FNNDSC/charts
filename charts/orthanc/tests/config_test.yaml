@@ -50,3 +50,27 @@ tests:
           path: data["orthanc.json"]
           pattern: |-
             .*"MasterKey": \[.*
+  - it: should set MetricsEnabled=true when config.metrics.enabled=true
+    set:
+      metrics.enabled: true
+    asserts:
+      - matchRegex:
+          path: data["orthanc.json"]
+          pattern: |-
+            .*"MetricsEnabled": true.*
+  - it: should set MetricsEnabled=false when config.metrics.enabled=false
+    set:
+      metrics.enabled: false
+    asserts:
+      - matchRegex:
+          path: data["orthanc.json"]
+          pattern: |-
+            .*"MetricsEnabled": false.*
+  - it: should fail if config.MetricsEnabled has a conflicting value with metrics.enabled
+    set:
+      metrics.enabled: true
+      config.MetricsEnabled: false
+    asserts:
+      - failedTemplate:
+          errorMessage: >-
+            config.MetricsEnabled and metrics.enabled have conflicting values.

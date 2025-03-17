@@ -168,16 +168,51 @@ affinity: {}
 
 # -- ObjectBucketClaim configuration
 objectStorage:
-  enabled: true  # TODO default should maybe be false...
+  enabled: false
   storageClass: openshift-storage.noobaa.io
   annotations: {}
   additionalConfig: {}
   # -- Ignore BUCKET_PORT and use HTTP with port 80.
   forceHttp: false
 
+# -- PersistentVolumeClaim storage configuration
+persistence:
+  index:
+    # -- Enable Orthanc SQLite index data persistence using PVC
+    enabled: false
+    # -- Name of an existing PVC to use
+    existingClaim:
+    # -- PVC Storage Class for Orthanc SQLite index
+    storageClass:
+    # -- PVC Access Mode for Orthanc SQLite index
+    accessModes: [ ReadWriteOnce ]
+    # -- PVC Storage Request for Orthanc SQLite index
+    size: 1Gi
+    # -- Annotations for the PVC
+    annotations:
+    # -- Labels for the PVC
+    labels:
+  storage:
+    # -- Enable Orthanc storage data persistence using PVC
+    enabled: false
+    # -- Enable Orthanc storage data persistence using PVC
+    enabled: false
+    # -- Name of an existing PVC to use
+    existingClaim:
+    # -- PVC Storage Class for Orthanc storage
+    storageClass:
+    # -- PVC Access Mode for Orthanc storage
+    accessModes: [ ReadWriteOnce ]
+    # -- PVC Storage Request for Orthanc storage
+    size: 1Gi
+    # -- Annotations for the PVC
+    annotations:
+    # -- Labels for the PVC
+    labels:
+
 # -- Use the CrunchyData PostgreSQL Operator to create a PostgreSQL database
 crunchyPgo:
-  enabled: true  # TODO set to false
+  enabled: false
   annotations: {}
   spec:
     backups: {}
@@ -503,6 +538,48 @@ config:
   # -- NOTE: an emptyDir volume will be created for this location,
   #          which can be configured by emptyDirs.temporaryDirectory.
   TemporaryDirectory: /tmp/Orthanc
+
+metrics:
+  # -- Enables the Prometheus metrics endpoint of Orthanc.
+  # -- metrics.enabled is an alias for config.MetricsEnabled.
+  enabled: false
+  # -- Configuration of Prometheus ServiceMonitor
+  serviceMonitor:
+    # -- Specify if a ServiceMonitor will be deployed for Prometheus Operator
+    enabled: false
+    # -- Namespace in which Prometheus is running
+    namespace: monitoring
+    # -- Extra labels for the ServiceMonitor
+    labels: {}
+    # -- The name of the label on the target service to use as the job name in Prometheus
+    jobLabel: ""
+    # -- How frequently to scrape metrics
+    interval: ""
+    # -- Timeout after which the scrape is ended
+    scrapeTimeout: ""
+    # -- Specify additional relabeling of metrics
+    metricRelabelings: []
+    # -- Specify general relabeling
+    relabelings: []
+    # -- Prometheus instance selector labels
+    # -- ref: https://github.com/bitnami/charts/tree/main/bitnami/prometheus-operator#prometheus-configuration
+    selector: {}
+  # -- Custom PrometheusRule to be defined
+  # -- The value is evaluated as a template, so, for example, the value can depend on .Release or .Chart
+  # -- ref: https://github.com/coreos/prometheus-operator#customresourcedefinitions
+  prometheusRule:
+    # -- Create a PrometheusRule for Prometheus Operator
+    ##
+    enabled: false
+    # -- Namespace for the PrometheusRule Resource (defaults to the Release Namespace)
+    ##
+    namespace: ""
+    # -- Additional labels that can be used so PrometheusRule will be discovered by Prometheus
+    ##
+    labels: {}
+    # -- PrometheusRule definitions
+    # -- Make sure to constraint the rules to the current postgresql service.
+    rules: []
 
 # -- oauth2-proxy subchart configuration.
 # -- Run `helm show values oauth2-proxy/oauth2-proxy` to show full configuration options.
