@@ -7,6 +7,7 @@ release:
 tests:
   - it: should create a random key when MasterKey="auto"
     set:
+      config.AwsStStorage.BucketName: "bucket"
       config.AwsS3Storage.StorageEncryption.Enable: true
       config.AwsS3Storage.StorageEncryption.MasterKey: "auto"
     asserts:
@@ -22,6 +23,8 @@ tests:
           count: 0
   - it: should not create the secret when encryption key specified manually
     set:
+      config.AwsStStorage.BucketName: "bucket"
+      config.AwsS3Storage.StorageEncryption.Enable: true
       config.AwsS3Storage.StorageEncryption.MasterKey: [1, "/path/to/master.key"]
     asserts:
       - hasDocuments:

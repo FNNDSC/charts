@@ -72,7 +72,7 @@ Create the name of the service account to use
 {{- define "orthanc.encryption-secret" }}
 {{- if (and
   .Values.config.AwsS3Storage.StorageEncryption.Enable
-  (eq .Values.config.AwsS3Storage.StorageEncryption.MasterKey "auto")
+  (eq (toString .Values.config.AwsS3Storage.StorageEncryption.MasterKey) "auto")
 ) -}}
 {{- include "orthanc.fullname" . -}}-encryption
 {{- end }}

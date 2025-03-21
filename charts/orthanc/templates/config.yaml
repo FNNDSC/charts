@@ -58,6 +58,9 @@ data:
   {{- if (or (empty $masterKey) (and (typeOf $masterKey | eq "string") (eq $masterKey "nag"))) }}
     {{- $_ := unset $cryptConfig "MasterKey" }}
   {{- end }}
+  {{- if dig "AwsS3Storage" "BucketName" "" $config | empty }}
+    {{- $_ := unset $config "AwsS3Storage" }}
+  {{- end }}
 
   {{- /* Resource Limits */}}
   {{- if (empty (get $config "ConcurrentJobs")) }}

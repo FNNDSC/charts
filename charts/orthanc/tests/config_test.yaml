@@ -43,6 +43,7 @@ tests:
               .*"MasterKey": \[.*
   - it: should set a value for MasterKey when StorageEncryption.Enable=true and MasterKey="auto"
     set:
+      config.AwsS3Storage.BucketName: "bucket"
       config.AwsS3Storage.StorageEncryption.Enable: true
       config.AwsS3Storage.StorageEncryption.MasterKey: "auto"
     asserts:
