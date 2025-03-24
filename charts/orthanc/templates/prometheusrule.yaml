@@ -3,9 +3,9 @@ apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:
   name: {{ include "orthanc.fullname" . }}
-  namespace: {{ coalesce .Values.metrics.prometheusRule.namespace .Release.Namespace | quote }}
+  namespace: {{ default .Release.Namespace .Values.metrics.prometheusRule.namespace }}
   labels:
-    {{- merge .Values.metrics.prometheusRule.labels (dict "app.kubernetes.io/component" "metrics") (include "orthanc.labels" .) | toYaml | nindent 4 }}
+    {{- merge .Values.metrics.prometheusRule.labels (dict "app.kubernetes.io/component" "metrics") (include "orthanc.labels" . | fromYaml) | toYaml | nindent 4 }}
   {{- with (merge .Values.metrics.prometheusRule.annotations .Values.commonAnnotations) }}
   annotations:
     {{- toYaml . | nindent 4 }}

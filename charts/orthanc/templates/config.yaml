@@ -9,7 +9,7 @@ data:
   {{- $config := deepCopy .Values.config }}
 
   {{- /* Metrics */}}
-  {{- if (and (typeOf .Values.config.MetricsEnabled | eq "bool")
+  {{- if (and (kindIs "bool" .Values.config.MetricsEnabled)
               (ne .Values.config.MetricsEnabled .Values.metrics.enabled)) }}
     {{- fail "config.MetricsEnabled and metrics.enabled have conflicting values." }}
   {{- end }}

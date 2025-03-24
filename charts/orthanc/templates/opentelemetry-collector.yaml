@@ -1,0 +1,36 @@
+{{- if (and .Values.metrics.enabled .Values.metrics.collector.enabled) }}
+kind: OpenTelemetryCollector
+apiVersion: opentelemetry.io/v1beta1
+metadata:
+  name: {{ include "orthanc.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "orthanc.labels" . | nindent 4 }}
+    {{- with .Values.metrics.collector.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with (merge .Values.metrics.collector.annotations .Values.commonAnnotations) }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- $fullname := include "orthanc.fullname" . }}
+{{- range $scrape_config := .Values.metrics.collector.spec.config.receivers.prometheus.config.scrape_configs | default (list) }}
+  {{- $_ := tpl $scrape_config.job_name $ | set $scrape_config "job_name" }}
+  {{- range $static_config := get $scrape_config "static_configs" }}
+    {{- if (and (get $static_config "labels")
+                (get $static_config "labels" | kindIs "string")) }}
+      {{- $_ := tpl $static_config.labels $ | fromYaml | set $static_config "labels" }}
+    {{- end }}
+    {{- if get $static_config "targets" | kindIs "slice" }}
+      {{- /* HACK: no way to map function over list in gotemplate, so we create a mutable dict */}}
+      {{- $targets := dict }}
+      {{- range $i, $target := get $static_config "targets" }}
+        {{- $_ := set $targets (toString $i) (tpl $target $) }}
+      {{- end }}
+      {{- $_ := set $static_config "targets" (values $targets) }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+spec:
+  {{- toYaml .Values.metrics.collector.spec | nindent 2 }}
+{{- end }}

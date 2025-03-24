@@ -3,10 +3,10 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: {{ include "orthanc.fullname" . }}
-  namespace: {{ coalesce .Values.metrics.serviceMonitor.namespace .Release.Namespace | quote }}
+  namespace: {{ default .Release.Namespace .Values.metrics.serviceMonitor.namespace }}
   labels:
-    {{- merge .Values.metrics.serviceMonitor.labels (dict "app.kubernetes.io/component" "metrics") (include "orthanc.labels" .) | toYaml | nindent 4 }}
-  {{- with (merge .Values.metrics.ServiceMonitor.annotations .Values.commonAnnotations) }}
+    {{- merge .Values.metrics.serviceMonitor.labels (dict "app.kubernetes.io/component" "metrics") (include "orthanc.labels" . | fromYaml) | toYaml | nindent 4 }}
+  {{- with (merge .Values.metrics.serviceMonitor.annotations .Values.commonAnnotations) }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
@@ -16,10 +16,10 @@ spec:
   {{- end }}
   selector:
     matchLabels:
-	  {{- include "orthanc.selectorLabels" . | nindent 4 }}
-      app.kubernetes.io/component: metrics
+      {{- include "orthanc.selectorLabels" . | nindent 6 }}
   endpoints:
-    - port: http-metrics
+    - port: http
+      path: {{ .Values.metrics.serviceMonitor.path }}
       {{- if .Values.metrics.serviceMonitor.interval }}
       interval: {{ .Values.metrics.serviceMonitor.interval }}
       {{- end }}
@@ -35,6 +35,14 @@ spec:
       {{- end }}
       {{- if .Values.metrics.serviceMonitor.honorLabels }}
       honorLabels: {{ .Values.metrics.serviceMonitor.honorLabels }}
+      {{- end }}
+      {{- with .Values.metrics.serviceMonitor.basicAuth }}
+      basicAuth:
+        {{- toYaml . | nindent 6 }}
+      {{- end }}
+      scheme: {{ .Values.metrics.serviceMonitor.scheme }}
+      {{- with .Values.metrics.serviceMonitor.tlsConfig }}
+        {{- toYaml . | nindent 6 }}
       {{- end }}
   namespaceSelector:
     matchNames:

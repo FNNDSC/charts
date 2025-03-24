@@ -9,7 +9,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "orthanc.labels" . | nindent 4 }}
-  {{- with (merge .Values.crunchyPgo.annotations .Values.commonAnnotations )}}
+  {{- with (merge .Values.crunchyPgo.annotations .Values.commonAnnotations) }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}

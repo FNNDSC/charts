@@ -4,7 +4,7 @@ kind: Service
 metadata:
   name: {{ include "orthanc.fullname" . }}
   labels:
-    {{- include "orthanc.labels" . | nindent 4 }}
+    {{- include "orthanc.service-labels" . | nindent 4 }}
   {{- with (merge .Values.service.annotations .Values.commonAnnotations )}}
   annotations:
     {{- toYaml . | nindent 4 }}
