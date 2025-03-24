@@ -191,9 +191,9 @@ persistence:
     # -- PVC Storage Request for Orthanc SQLite index
     size: 1Gi
     # -- Annotations for the PVC
-    annotations:
+    annotations: {}
     # -- Labels for the PVC
-    labels:
+    labels: {}
   storage:
     # -- Enable Orthanc storage data persistence using PVC
     enabled: false
@@ -206,9 +206,9 @@ persistence:
     # -- PVC Storage Request for Orthanc storage
     size: 1Gi
     # -- Annotations for the PVC
-    annotations:
+    annotations: {}
     # -- Labels for the PVC
-    labels:
+    labels: {}
 
 # -- Use the CrunchyData PostgreSQL Operator to create a PostgreSQL database
 crunchyPgo:
@@ -533,6 +533,18 @@ config:
   # -- NOTE: an emptyDir volume will be created for this location,
   #          which can be configured by emptyDirs.temporaryDirectory.
   TemporaryDirectory: /tmp/Orthanc
+
+  # -- Path to the directory that holds the heavyweight files (i.e. the
+  # -- raw DICOM instances).
+  # -- NOTE: a PersistentVolumeClaim can be created for this path by
+  #          setting persistence.storage.enabled=true
+  StorageDirectory: /var/lib/orthanc/storage
+  # -- Path to the directory that holds the SQLite index (if unset, the
+  # -- value of StorageDirectory is used). This index could be stored on
+  # -- a RAM-drive or a SSD device for performance reasons.
+  # -- NOTE: a PersistentVolumeClaim can be created for this path by
+  #          setting persistence.index.enabled=true
+  IndexDirectory: /var/lib/orthanc/index
 
 metrics:
   # -- Enables the Prometheus metrics endpoint of Orthanc.

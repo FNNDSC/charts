@@ -1,0 +1,56 @@
+suite: PersistentVolumeClaims
+release:
+  name: pvctest
+templates:
+  - storage.yml
+tests:
+  - it: should be empty when persistence is disabled
+    set:
+      persistence.index.enabled: false
+      persistence.storage.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+  - it: should create a volume when existingClaim is empty
+    set:
+      persistence:
+        index:
+          enabled: true
+          existingClaim: ""
+          size: 2Gi
+        storage:
+          enabled: true
+          existingClaim: "existing-claim-name"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - containsDocument:
+          apiVersion: v1
+          kind: PersistentVolumeClaim
+          name: pvctest-orthanc-index
+      - equal:
+          path: spec.resources.requests.storage
+          value: 2Gi
+  - it: should create both volumes
+    set:
+      persistence:
+        index:
+          enabled: true
+          existingClaim: ""
+        storage:
+          enabled: true
+          existingClaim: ""
+    asserts:
+      - hasDocuments:
+          count: 2
+      - containsDocument:
+          apiVersion: v1
+          kind: PersistentVolumeClaim
+          name: pvctest-orthanc-index
+          any: true
+      - containsDocument:
+          apiVersion: v1
+          kind: PersistentVolumeClaim
+          name: pvctest-orthanc-storage
+          any: true
+
