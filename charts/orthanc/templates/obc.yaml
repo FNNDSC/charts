@@ -1,4 +1,7 @@
 {{- if .Values.objectStorage.enabled }}
+{{- if .Values.persistence.storage.enabled }}
+  {{- fail "Cannot enable both objectStorage and persistence.storage" }}
+{{- end }}
 apiVersion: objectbucket.io/v1alpha1
 kind: ObjectBucketClaim
 metadata:

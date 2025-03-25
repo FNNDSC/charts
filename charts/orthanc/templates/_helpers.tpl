@@ -69,10 +69,17 @@ Create the name of the service account to use
 {{- end }}
 
 
+{{- define "orthanc.service-labels" }}
+{{- include "orthanc.labels" . }}
+{{- with .Values.service.labels }}
+{{- toYaml . }}
+{{- end }}
+{{- end }}
+
 {{- define "orthanc.encryption-secret" }}
 {{- if (and
   .Values.config.AwsS3Storage.StorageEncryption.Enable
-  (eq .Values.config.AwsS3Storage.StorageEncryption.MasterKey "auto")
+  (eq (toString .Values.config.AwsS3Storage.StorageEncryption.MasterKey) "auto")
 ) -}}
 {{- include "orthanc.fullname" . -}}-encryption
 {{- end }}
@@ -92,3 +99,10 @@ Create the name of the service account to use
 {{- include "orthanc.fullname" . -}}-pguser-{{- get (mustFirst .Values.crunchyPgo.spec.users) "name" -}}
 {{- end -}}
 {{- end -}}
+
+
+{{- define "orthanc.prometheus-label-escape" }}
+{{- range $k, $v := . }}
+{{ mustRegexReplaceAllLiteral "[-/\\.]" $k "_" }}: {{ quote $v }}
+{{- end }}
+{{- end }}

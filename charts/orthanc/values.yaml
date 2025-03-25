@@ -75,6 +75,8 @@ emptyDirs:
 service:
   # -- Create the service
   create: true
+  # -- Service labels
+  labels: {}
   # -- Service annotations
   annotations: {}
   # -- This sets the service type more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
@@ -168,16 +170,49 @@ affinity: {}
 
 # -- ObjectBucketClaim configuration
 objectStorage:
-  enabled: true  # TODO default should maybe be false...
+  enabled: false
   storageClass: openshift-storage.noobaa.io
   annotations: {}
   additionalConfig: {}
   # -- Ignore BUCKET_PORT and use HTTP with port 80.
   forceHttp: false
 
+# -- PersistentVolumeClaim storage configuration
+persistence:
+  index:
+    # -- Enable Orthanc SQLite index data persistence using PVC
+    enabled: false
+    # -- Name of an existing PVC to use
+    existingClaim:
+    # -- PVC Storage Class for Orthanc SQLite index
+    storageClass:
+    # -- PVC Access Mode for Orthanc SQLite index
+    accessModes: [ ReadWriteOnce ]
+    # -- PVC Storage Request for Orthanc SQLite index
+    size: 1Gi
+    # -- Annotations for the PVC
+    annotations: {}
+    # -- Labels for the PVC
+    labels: {}
+  storage:
+    # -- Enable Orthanc storage data persistence using PVC
+    enabled: false
+    # -- Name of an existing PVC to use
+    existingClaim:
+    # -- PVC Storage Class for Orthanc storage
+    storageClass:
+    # -- PVC Access Mode for Orthanc storage
+    accessModes: [ ReadWriteOnce ]
+    # -- PVC Storage Request for Orthanc storage
+    size: 1Gi
+    # -- Annotations for the PVC
+    annotations: {}
+    # -- Labels for the PVC
+    labels: {}
+
 # -- Use the CrunchyData PostgreSQL Operator to create a PostgreSQL database
 crunchyPgo:
-  enabled: true  # TODO set to false
+  enabled: false
   annotations: {}
   spec:
     backups: {}
@@ -483,11 +518,6 @@ config:
     IsDefaultOrthancUI: true
     Theme: "dark"
 
-  # -- Configuration of OHIF Viewer plugin
-  # -- https://orthanc.uclouvain.be/book/plugins/ohif.html#configuration
-  OHIF:
-    DataSource: "dicom-web"
-
   # -- Configuration of DICOMweb
   # -- https://orthanc.uclouvain.be/book/plugins/dicomweb.html#server-related-options
   DicomWeb:
@@ -503,6 +533,98 @@ config:
   # -- NOTE: an emptyDir volume will be created for this location,
   #          which can be configured by emptyDirs.temporaryDirectory.
   TemporaryDirectory: /tmp/Orthanc
+
+  # -- Path to the directory that holds the heavyweight files (i.e. the
+  # -- raw DICOM instances).
+  # -- NOTE: a PersistentVolumeClaim can be created for this path by
+  #          setting persistence.storage.enabled=true
+  StorageDirectory: /var/lib/orthanc/storage
+  # -- Path to the directory that holds the SQLite index (if unset, the
+  # -- value of StorageDirectory is used). This index could be stored on
+  # -- a RAM-drive or a SSD device for performance reasons.
+  # -- NOTE: a PersistentVolumeClaim can be created for this path by
+  #          setting persistence.index.enabled=true
+  IndexDirectory: /var/lib/orthanc/index
+
+metrics:
+  # -- Enables the Prometheus metrics endpoint of Orthanc.
+  # -- metrics.enabled is an alias for config.MetricsEnabled.
+  enabled: false
+  # -- Configuration of Prometheus ServiceMonitor
+  serviceMonitor:
+    # -- Specify if a ServiceMonitor will be deployed for Prometheus Operator
+    enabled: false
+    # -- Namespace in which to create the ServiceMonitor. Default is .Release.Namespace
+    namespace: ""
+    # -- Extra labels for the ServiceMonitor
+    labels: {}
+    # -- Extra annotations for the ServiceMonitor
+    annotations: {}
+    # -- HTTP path from which to scrape for metrics
+    path: &METRICS_PATH /tools/metrics-prometheus
+    # -- Basic Authentication credentials to use when scraping the target
+    basicAuth: {}
+    # -- HTTP scheme to use for scraping
+    # -- ref: https://prometheus-operator.dev/docs/api-reference/api/#monitoring.coreos.com/v1.BasicAuth
+    scheme: http
+    # -- TLS configuration to use when scraping the target
+    # -- ref: https://prometheus-operator.dev/docs/api-reference/api/#monitoring.coreos.com/v1.TLSConfig
+    tlsConfig: {}
+    # -- The name of the label on the target service to use as the job name in Prometheus
+    jobLabel: ""
+    # -- How frequently to scrape metrics
+    interval: ""
+    # -- Timeout after which the scrape is ended
+    scrapeTimeout: ""
+    # -- Specify additional relabeling of metrics
+    metricRelabelings: []
+    # -- Specify general relabeling
+    relabelings: []
+
+  # -- Custom PrometheusRule to be defined
+  # -- The value is evaluated as a template, so, for example, the value can depend on .Release or .Chart
+  # -- ref: https://github.com/coreos/prometheus-operator#customresourcedefinitions
+  prometheusRule:
+    # -- Create a PrometheusRule for Prometheus Operator
+    enabled: false
+    # -- Namespace for the PrometheusRule Resource (defaults to the Release Namespace)
+    namespace: ""
+    # -- Additional labels that can be used so PrometheusRule will be discovered by Prometheus
+    labels: {}
+    # -- PrometheusRule definitions
+    # -- Make sure to constraint the rules to the current postgresql service.
+    rules: []
+
+  # -- Configuration of OpenTelemetry Collector
+  collector:
+    # -- Create an OpenTelemetry Collector using the OpenTelemetry Operator
+    enabled: false
+    annotations: {}
+    labels: {}
+    spec:
+      config:
+        exporters: {}
+          # debug: {}
+        receivers:
+          prometheus:
+            config:
+              # -- Prometheus scrape_configs.
+              # -- ref: https://prometheus.io/docs/prometheus/latest/configuration/configuration/#scrape_config
+              # -- The following fields are templated: job_name, static_configs[*].targets.[*], static_configs[*].labels
+              scrape_configs:
+                - job_name: '{{ include "orthanc.fullname" . }}'
+                  scrape_interval: 15s
+                  metrics_path: *METRICS_PATH
+                  static_configs:
+                    - targets:
+                        # IP address and port via environment variable service discovery
+                        # see https://kubernetes.io/docs/concepts/services-networking/service/#environment-variables
+                        - '${env:{{ include "orthanc.fullname" . | upper | replace "-" "_" }}_SERVICE_HOST}:${env:{{ include "orthanc.fullname" . | upper | replace "-" "_" }}_SERVICE_PORT_HTTP}'
+        service:
+          pipelines: {}
+            # metrics:
+            #   exporters: [ debug ]
+            #   receivers: [ prometheus ]
 
 # -- oauth2-proxy subchart configuration.
 # -- Run `helm show values oauth2-proxy/oauth2-proxy` to show full configuration options.
@@ -526,7 +648,7 @@ oauth2-proxy:
     cookieSecret: "XXXXXXXXXXXXXXXX"
     configFile: |-
         email_domains = [ "*" ]
-        upstreams = [ "http://{{ .Values.image.repository }}" ]  # TODO left off here: how can I pass parent values to subchart?
+        upstreams = [ "http://{{ .Values.image.repository }}" ]
       # Custom configuration file: oauth2_proxy.cfg
       # configFile: |-
       #   pass_basic_auth = false

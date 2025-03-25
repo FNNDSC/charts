@@ -1,0 +1,23 @@
+suite: OpenTelemetry Collector Config
+release:
+  revision: 1
+  name: oteltest
+templates:
+  - opentelemetry-collector.yaml
+tests:
+  - it: should scrape the Orthanc service via environment variables by default
+    set:
+      metrics:
+        enabled: true
+        collector:
+          enabled: true
+    asserts:
+      - equal:
+          path: spec.config.receivers.prometheus.config.scrape_configs
+          value:
+            - job_name: oteltest-orthanc
+              metrics_path: /tools/metrics-prometheus
+              scrape_interval: 15s
+              static_configs:
+              - targets:
+                - ${env:OTELTEST_ORTHANC_SERVICE_HOST}:${env:OTELTEST_ORTHANC_SERVICE_PORT_HTTP}

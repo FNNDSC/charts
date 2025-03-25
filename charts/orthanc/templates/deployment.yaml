@@ -147,6 +147,14 @@ spec:
             - name: config
               readOnly: true
               mountPath: /etc/orthanc
+            {{- if .Values.persistence.storage.enabled }}
+            - name: index
+              mountPath: {{ .Values.config.IndexDirectory }}
+            {{- end }}
+            {{- if .Values.persistence.storage.enabled }}
+            - name: storage
+              mountPath: {{ .Values.config.StorageDirectory }}
+            {{- end }}
             - name: tmp
               mountPath: {{ .Values.config.TemporaryDirectory }}
             {{- with include "orthanc.encryption-secret" . }}
@@ -161,6 +169,16 @@ spec:
         - name: config
           configMap:
             name: {{ include "orthanc.fullname" . }}
+        {{- if .Values.persistence.storage.enabled }}
+        - name: storage
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.storage.existingClaim | default (include "orthanc.fullname" . | printf "%s-storage") }}
+        {{- end }}
+        {{- if .Values.persistence.index.enabled }}
+        - name: index
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.index.existingClaim | default (include "orthanc.fullname" . | printf "%s-index") }}
+        {{- end }}
         - name: tmp
           emptyDir:
             {{- with .Values.emptyDirs.temporaryDirectory }}

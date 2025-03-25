@@ -1,0 +1,29 @@
+{{- define "orthanc.volume" }}
+{{- $volume := get .Values.persistence .name }}
+{{- if (and $volume.enabled (empty $volume.existingClaim)) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "orthanc.fullname" . }}-{{ .name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- merge $volume.labels (include "orthanc.labels" . | fromYaml) | toYaml | nindent 4 }}
+  {{- with (merge $volume.annotations .Values.commonAnnotations) }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with $volume.storageClass | default .Values.global.defaultStorageClass }}
+  storageClassName: {{ . }}
+  {{- end }}
+  accessModes:
+    {{- toYaml $volume.accessModes | nindent 4 }}
+  resources:
+    requests:
+      storage: {{ $volume.size }}
+{{- end }}
+{{- end }}
+
+{{- include "orthanc.volume" (merge (dict "name" "index") $) }}
+---
+{{- include "orthanc.volume" (merge (dict "name" "storage") $) }}
