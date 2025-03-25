@@ -1616,6 +1616,21 @@ entries:
   orthanc:
   - apiVersion: v2
     appVersion: 1.12.6
+    created: "2025-03-25T17:35:30.818057445Z"
+    dependencies:
+    - condition: oauth2-proxy.enabled
+      name: oauth2-proxy
+      repository: https://oauth2-proxy.github.io/manifests
+      version: ~7.12.6
+    description: Orthanc PACS Server
+    digest: db428dc024c97a6c89b5a5d199858ce09c2a26bd05caba708198639fbb9d60ed
+    name: orthanc
+    type: application
+    urls:
+    - https://github.com/FNNDSC/charts/releases/download/orthanc-2.0.0-beta.1/orthanc-2.0.0-beta.1.tgz
+    version: 2.0.0-beta.1
+  - apiVersion: v2
+    appVersion: 1.12.6
     created: "2025-03-14T19:49:08.704658612Z"
     dependencies:
     - condition: oauth2-proxy.enabled
@@ -2059,4 +2074,4 @@ entries:
     urls:
     - https://github.com/FNNDSC/charts/releases/download/util-0.1.0/util-0.1.0.tgz
     version: 0.1.0
-generated: "2025-03-14T19:49:08.70482967Z"
+generated: "2025-03-25T17:35:30.818237482Z"
