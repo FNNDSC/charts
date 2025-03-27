@@ -648,7 +648,7 @@ oauth2-proxy:
     cookieSecret: "XXXXXXXXXXXXXXXX"
     configFile: |-
         email_domains = [ "*" ]
-        upstreams = [ "http://{{ .Values.image.repository }}" ]
+        upstreams = [ "http://name.of.orthanc.release:8042" ]
       # Custom configuration file: oauth2_proxy.cfg
       # configFile: |-
       #   pass_basic_auth = false
