@@ -187,7 +187,7 @@ persistence:
     # -- PVC Storage Class for Orthanc SQLite index
     storageClass:
     # -- PVC Access Mode for Orthanc SQLite index
-    accessModes: [ ReadWriteOnce ]
+    accessModes: [ ReadWriteOncePod ]
     # -- PVC Storage Request for Orthanc SQLite index
     size: 1Gi
     # -- Annotations for the PVC
@@ -294,7 +294,6 @@ config:
   Plugins:
     ## -------- Common Plugins --------
     - /usr/local/share/orthanc/plugins/libConnectivityChecks.so
-    - /usr/local/share/orthanc/plugins/libDelayedDeletion.so
     - /usr/local/share/orthanc/plugins/libHousekeeper.so
     - /usr/local/share/orthanc/plugins/libModalityWorklists.so
     - /usr/local/share/orthanc/plugins/libMultitenantDicom.so
@@ -306,10 +305,11 @@ config:
     - /usr/local/share/orthanc/plugins/libOrthancPostgreSQLIndex.so
     - /usr/local/share/orthanc/plugins/libOrthancAwsS3Storage.so
 
-    ## -------- Optional Servers --------
+    ## -------- Optional Features --------
     # - /usr/local/share/orthanc/plugins/libOrthancAuthorization.so
     # - /usr/local/share/orthanc/plugins/libServeFolders.so
     # - /usr/local/share/orthanc/plugins/libOrthancIndexer.so
+    # - /usr/local/share/orthanc/plugins/libDelayedDeletion.so
 
     ## -------- Web user interfaces --------
 
@@ -648,7 +648,7 @@ oauth2-proxy:
     cookieSecret: "XXXXXXXXXXXXXXXX"
     configFile: |-
         email_domains = [ "*" ]
-        upstreams = [ "http://{{ .Values.image.repository }}" ]
+        upstreams = [ "http://name.of.orthanc.release:8042" ]
       # Custom configuration file: oauth2_proxy.cfg
       # configFile: |-
       #   pass_basic_auth = false
