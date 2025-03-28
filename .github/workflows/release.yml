@@ -2,7 +2,7 @@ name: Release Chart
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, chris-0.14 ]
     paths:
       - 'charts/**'
 

@@ -193,7 +193,6 @@ app.kubernetes.io/component: pfdcm
 app.kubernetes.io/instance: {{ .Release.Name }}
 app.kubernetes.io/version: {{ include "pfdcm.listenerVersion" . | quote }}
 app.kubernetes.io/component: backend
-app.kubernetes.io/part-of: chris
 {{- end }}
 
 {{- define "pfdcm.listenerService" -}}
