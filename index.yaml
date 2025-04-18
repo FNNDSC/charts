@@ -3,6 +3,53 @@ entries:
   chris:
   - apiVersion: v2
     appVersion: 6.3.0-beta.7
+    created: "2025-04-18T23:27:27.243791111Z"
+    dependencies:
+    - condition: postgresql.enabled
+      name: postgresql
+      repository: oci://registry-1.docker.io/bitnamicharts
+      version: ~16.2.5
+    - name: rabbitmq
+      repository: oci://registry-1.docker.io/bitnamicharts
+      version: ~15.1.0
+    - name: nats
+      repository: oci://registry-1.docker.io/bitnamicharts
+      version: ~8.4.10
+    - condition: pfcon.enabled
+      name: pfcon
+      repository: https://fnndsc.github.io/charts
+      version: 1.0.0-alpha.2
+    - condition: orthanc.enabled
+      name: orthanc
+      repository: https://fnndsc.github.io/charts
+      version: ~2.0.0
+    - name: util
+      repository: https://fnndsc.github.io/charts
+      version: 0.2.1
+    description: ChRIS is an open-source platform backend for medical compute.
+    digest: ddd347008878eef3da22e0f3178b1c2b952a75707fd1151ecb016c6b68d8807c
+    home: https://chrisproject.org
+    icon: ./logo_chris.png
+    keywords:
+    - medicine
+    - science
+    - bioinformatics
+    - neuroscience
+    - scientific workflow system
+    maintainers:
+    - email: dev@babyMRI.org
+      name: The FNNDSC Dev Team
+      url: https://fnndsc.org
+    name: chris
+    sources:
+    - https://github.com/FNNDSC/charts
+    - https://github.com/FNNDSC/ChRIS_ultron_backEnd
+    type: application
+    urls:
+    - https://github.com/FNNDSC/charts/releases/download/chris-1.0.0-beta.1/chris-1.0.0-beta.1.tgz
+    version: 1.0.0-beta.1
+  - apiVersion: v2
+    appVersion: 6.3.0-beta.7
     created: "2025-01-13T18:19:54.551962802Z"
     dependencies:
     - condition: postgresql.enabled
@@ -1896,6 +1943,27 @@ entries:
   pfcon:
   - apiVersion: v2
     appVersion: 5.2.3
+    created: "2025-04-18T23:27:27.360952814Z"
+    dependencies:
+    - name: util
+      repository: https://fnndsc.github.io/charts
+      version: ~0.1.0
+    description: API for a ChRIS remote compute resource
+    digest: 6e362bbd841681981ec678ee1df5de9ed52d384d7ba16a9f90e7f0b41fcbeab1
+    maintainers:
+    - email: dev@babyMRI.org
+      name: The FNNDSC Dev Team
+      url: https://fnndsc.org
+    name: pfcon
+    sources:
+    - https://github.com/FNNDSC/charts
+    - https://github.com/FNNDSC/pfcon
+    type: application
+    urls:
+    - https://github.com/FNNDSC/charts/releases/download/pfcon-1.0.0/pfcon-1.0.0.tgz
+    version: 1.0.0
+  - apiVersion: v2
+    appVersion: 5.2.3
     created: "2024-12-16T19:32:29.731894609Z"
     dependencies:
     - name: util
@@ -2143,4 +2211,4 @@ entries:
     urls:
     - https://github.com/FNNDSC/charts/releases/download/util-0.1.0/util-0.1.0.tgz
     version: 0.1.0
-generated: "2025-03-28T20:29:49.501222578Z"
+generated: "2025-04-18T23:27:27.361511013Z"
