@@ -572,7 +572,7 @@ pfdcm:
     image:
       repository: ghcr.io/fnndsc/oxidicom
       pullPolicy: Always
-      tag: "pr-3"  # pre-alpha, has known bugs.
+      tag: "3.0.0"
     podAnnotations: {}
     # -- (optional) hostPort for DICOM listener
     hostPort:
