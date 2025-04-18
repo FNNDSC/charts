@@ -624,134 +624,76 @@ pfdcm:
         cpu: 250m
         memory: 256Mi
 
-# -- Orthanc open-source PACS server
+# -- Orthanc open-source PACS server subchart.
+# -- Ref: `helm show values fnndsc/orthanc --version 2.0.0`
 orthanc:
   # -- Enable Orthanc. If true, it is recommended to also set pfdcm.enabled=true.
   enabled: false
-  podAnnotations: {}
-  podSecurityContext: {}
-    # fsGroup: 2000
-  securityContext: {}
-    # capabilities:
-    #   drop:
-    #   - ALL
-    # readOnlyRootFilesystem: true
-    # runAsNonRoot: true
-    # runAsUser: 1000
-  # -- (optional) set hostPort for Orthanc's HTTP API
-  hostPort:
-  # -- (optional) set hostPort for Orthanc's PACS DIMSE port
-  dicomHostPort:
 
-  # -- Orthanc HTTP API and web app
-  service:
-    enabled: true
-    type: ClusterIP
-    port: 8042
-    # nodePort:
-  # -- PACS server
-  dicomService:
-    enabled: true
-    type: ClusterIP
-    port: 4242
-    # nodePort:
-  resources:
-    limits:
-      cpu: 250m
-      memory: 1Gi
-    requests:
-      cpu: 250m
-      memory: 1Gi
-  config:
-    # The logical name of this instance of Orthanc. This one is
-    # displayed in Orthanc Explorer and at the URI "/system".
-    name: "Orthanc"
-    # Enable the transparent compression of the DICOM instances
-    storageCompression: false
-    # Action to take when the maximum storage is reached.
-    # By default, the patients are recycled ("Recycle" mode).
-    # In "Reject" mode, the sender will receive a 0xA700 DIMSE status code
-    # if the instance was sent through C-Store, a 507 HTTP status code
-    # if using the REST API and a 0xA700 Failure reason when using
-    # DicomWeb Stow-RS 
-    # Allowed values: "Recycle", "Reject"
-    # (new in Orthanc 1.11.2)
-    maximumStorageMode: Reject
-    # Maximum size of the storage cache in MB.  The storage cache
-    # is stored in RAM and contains a copy of recently accessed
-    # files (written or read).  A value of "0" indicates the cache
-    # is disabled.  (new in Orthanc 1.10.0)
-    maximumStorageCacheSize: 0
+  # -- This will set the replicaset count more information can be found here: https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/
+  replicaCount: 1
 
-    # The DICOM Application Entity Title
-    dicomAet: "ORTHANC"
-    # Check whether the called AET corresponds during a DICOM request
-    dicomCheckCalledAet: false
+  # -- This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
+  image:
+    # -- Image repository.
+    # -- Note: jodogne/orthanc-plugins is preferred over orthancteam/orthanc
+    # --       because the compressed image size is smaller (80MB v.s. 1.1GB)
+    repository: docker.io/jodogne/orthanc-plugins
+    # -- This sets the pull policy for images.
+    pullPolicy: IfNotPresent
+    # -- Overrides the image tag whose default is the chart appVersion.
+    tag: ""
 
-    # The default encoding that is assumed for DICOM files without
-    # "SpecificCharacterSet" DICOM tag, and that is used when answering
-    # C-Find requests (including worklists). The allowed values are
-    # "Ascii", "Utf8", "Latin1", "Latin2", "Latin3", "Latin4",
-    # "Latin5", "Cyrillic", "Windows1251", "Arabic", "Greek", "Hebrew",
-    # "Thai", "Japanese", and "Chinese".
-    defaultEncoding: "Latin1"
-
-    # Set the timeout (in seconds) after which the DICOM associations
-    # are closed by the Orthanc SCP (server) if no further DIMSE
-    # command is received from the SCU (client).
-    dicomScpTimeout: 30
-
-    # The timeout (in seconds) after which the DICOM associations are
-    # considered as closed by the Orthanc SCU (client) if the remote
-    # DICOM SCP (server) does not answer.
-    dicomScuTimeout: 10
-
-    # Whether or not the password protection is enabled
-    authenticationEnabled: true
-
-    # The list of the registered users. Because Orthanc uses HTTP
-    # Basic Authentication, the passwords are stored as plain text.
-    registeredUsers: {}
-
-    # The list of the known DICOM modalities
-    #
-    # A fourth parameter is available to enable patches for a
-    # specific PACS manufacturer. The allowed values are currently
-    # "Generic" (default value), "StoreScp" (storescp tool from
-    # DCMTK), "ClearCanvas", "MedInria", "Dcm4Chee", "SyngoVia",
-    # "AgfaImpax" (Agfa IMPAX), "EFilm2" (eFilm version 2), and
-    # "Vitrea". This parameter is case-sensitive.
-    dicomModalities:
-      # !!!IMPORTANT!!!
-      # To use in combination with pfdcm, you MUST define a modality for
-      # `.Values.pfdcm.aet`
-      "ChRIS": [ "ChRIS", "NAME-oxidicom", 11111 ]
-      # "clearcanvas" : [ "CLEARCANVAS", "192.168.1.1", 104, "ClearCanvas" ]
-
-    # Whether Orthanc monitors its metrics (new in Orthanc 1.5.4). If
-    # set to "true", the metrics can be retrieved at
-    # "/tools/metrics-prometheus" formetted using the Prometheus
-    # text-based exposition format.
-    metricsEnabled: false
-
-  ohif:
-    enabled: true
-    # BTW, it's impossible to configure Orthanc's OHIF to connect with pfdcm-dicomweb.
-
-    # OHIF custom config file
-    # https://orthanc.uclouvain.be/book/plugins/ohif.html#user-configuration-of-ohif
-    # userConfiguration: |
-    #   window.config = {
-    #     extensions: [],
-    #     modes: []
-    #   }
-
+  # -- PersistentVolumeClaim storage configuration
   persistence:
-    storage:
-      size: 1Gi
-      # storageClass: my-storage-class
-      accessModes: [ ReadWriteOnce ]
     index:
+      # -- Enable Orthanc SQLite index data persistence using PVC
+      enabled: false
+      # -- Name of an existing PVC to use
+      existingClaim:
+      # -- PVC Storage Class for Orthanc SQLite index
+      storageClass:
+      # -- PVC Access Mode for Orthanc SQLite index
+      accessModes: [ ReadWriteOncePod ]
+      # -- PVC Storage Request for Orthanc SQLite index
       size: 1Gi
-      # storageClass: my-storage-class
+      # -- Annotations for the PVC
+      annotations: {}
+      # -- Labels for the PVC
+      labels: {}
+    storage:
+      # -- Enable Orthanc storage data persistence using PVC
+      enabled: false
+      # -- Name of an existing PVC to use
+      existingClaim:
+      # -- PVC Storage Class for Orthanc storage
+      storageClass:
+      # -- PVC Access Mode for Orthanc storage
       accessModes: [ ReadWriteOnce ]
+      # -- PVC Storage Request for Orthanc storage
+      size: 1Gi
+      # -- Annotations for the PVC
+      annotations: {}
+      # -- Labels for the PVC
+      labels: {}
+
+  # -- Orthanc configuration
+  # -- Ref: https://orthanc.uclouvain.be/book/users/configuration.html
+  # -- Do not put secrets in here. Use the environment variable configuration
+  # -- syntax and declare values for extraEnv or extraEnvFrom.
+  config:
+    # -- The logical name of this instance of Orthanc. This one is
+    # -- displayed in Orthanc Explorer and at the URI "/system".
+    Name: ChRIS Orthanc
+
+    # Network Topology
+    # ----------------
+    # -- The list of the known DICOM modalities. This option is ignored if
+    # -- "DicomModalitiesInDatabase" is set to "true", in which case you
+    # -- must use the REST API to define modalities.
+    # -- IMPORTANT: if orthanc.enabled=true and pfdcm.enabled=true, you must
+    # --            configure Orthanc to be able to push to the oxidicom
+    # --            service of ChRIS.
+    DicomModalities: {}
+      # "ChRIS": [ "ChRIS", "NAME-oxidicom", 11111 ]
+

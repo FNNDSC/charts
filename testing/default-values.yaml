@@ -61,11 +61,8 @@ pfdcm:
 
 orthanc:
   enabled: true
-  service:
-    type: NodePort
-    nodePort: 32003
   config:
-    dicomModalities:
+    DicomModalities:
       "ChRIS": [ "ChRIS", "cacao-oxidicom", 11111 ]
-    registeredUsers:
+    RegisteredUsers:
       orthanc: orthanc

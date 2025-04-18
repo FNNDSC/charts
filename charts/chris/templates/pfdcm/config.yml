@@ -6,7 +6,7 @@
 {{- $aet := .Values.pfdcm.aet -}}
 {{- $listenerService := include "pfdcm.listenerService" . -}}
 {{- $listenerPort := .Values.pfdcm.listener.service.port -}}
-{{- with (get .Values.orthanc.config.dicomModalities .Values.pfdcm.aet) -}}
+{{- with (get .Values.orthanc.config.DicomModalities .Values.pfdcm.aet) -}}
 {{- if (ne (index . 1 ) $listenerService) -}}
 {{- fail (printf "Orthanc modality \"%s\" must have host \"%s\"" $aet $listenerService) -}}
 {{- end -}}
@@ -15,8 +15,8 @@
 {{- end -}}
 {{- else -}}
 {{- fail (
-  printf ".Values.orthanc.config.dicomModalities must have an entry \"%s\": [\"%s\", \"%s\", %d]"
-  $aet $aet $listenerService $listenerPort
+  printf ".Values.orthanc.config.DicomModalities must have an entry \"%s\": [\"%s\", \"%s\", %d]"
+  $aet $aet $listenerService (int $listenerPort)
 ) -}}
 {{- end -}}
 {{ .Values.orthanc.config.dicomAet }}:
@@ -25,7 +25,7 @@
     aet_listener: {{ .Values.pfdcm.aet | quote }}
     aec: "ORTHANC"
     serverIP: "{{ .Release.Name }}-orthanc-dicom"
-    serverPort: "{{ .Values.orthanc.dicomService.port }}"
+    serverPort: "{{ .Values.orthanc.service.ports.dicom }}"
 {{- end -}}
 {{- end -}}
 
