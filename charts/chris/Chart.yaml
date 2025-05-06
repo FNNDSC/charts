@@ -17,8 +17,8 @@ keywords:
 icon: ./logo_chris.png
 
 type: application
-version: "1.0.0"
-appVersion: "6.3.0-beta.7"
+version: "1.0.1"
+appVersion: "6.3.0"
 
 maintainers:
 - name: The FNNDSC Dev Team
