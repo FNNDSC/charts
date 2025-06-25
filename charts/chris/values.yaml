@@ -85,8 +85,8 @@ cube:
     ## ref: https://github.com/emmett-framework/granian/blob/master/README.md#options
     # -- Granian web server number of workers
     GRANIAN_WORKERS: "1"
-    # -- Granian web server number of threads (per worker)
-    GRANIAN_THREADS: "1"
+    # -- Granian web server number of runtime threads (per worker)
+    GRANIAN_RUNTIME_THREADS: "1"
     # -- Granian web server number of blocking threads (per worker)
     GRANIAN_BLOCKING_THREADS: "1"
 

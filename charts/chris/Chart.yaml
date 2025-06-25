@@ -17,7 +17,7 @@ keywords:
 icon: ./logo_chris.png
 
 type: application
-version: "1.0.3"
+version: "1.0.4"
 appVersion: "6.3.2"
 
 maintainers:
