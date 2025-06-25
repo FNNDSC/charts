@@ -17,8 +17,8 @@ keywords:
 icon: ./logo_chris.png
 
 type: application
-version: "1.0.1"
-appVersion: "6.3.0"
+version: "1.0.2"
+appVersion: "6.3.2"
 
 maintainers:
 - name: The FNNDSC Dev Team
@@ -27,17 +27,17 @@ maintainers:
 
 dependencies:
 - name: postgresql
-  version: "~16.2.5"
+  version: "~16.7.9"
   repository: "oci://registry-1.docker.io/bitnamicharts"
   condition: postgresql.enabled
 - name: rabbitmq
-  version: "~15.1.0"
+  version: "~16.0.9"
   repository: "oci://registry-1.docker.io/bitnamicharts"
 - name: nats
-  version: "~8.4.10"
+  version: "~9.0.9"
   repository: "oci://registry-1.docker.io/bitnamicharts"
 - name: pfcon
-  version: "1.0.0-alpha.2"
+  version: "1.0.0"
   repository: "https://fnndsc.github.io/charts"
   condition: pfcon.enabled
 - name: orthanc
