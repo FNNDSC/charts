@@ -22,7 +22,7 @@ spec:
       app.kubernetes.io/instance: {{ .Release.Name }}
   template:
     metadata:
-      {{- with .podAnnotations }}
+      {{- with (default (dict) .podAnnotations | mustMerge (dict "kubectl.kubernetes.io/default-container" .name)) }}
       annotations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
