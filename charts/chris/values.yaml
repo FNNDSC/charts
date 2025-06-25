@@ -105,6 +105,17 @@ cube:
     # -- A value of `false` would allow anyone to create an account.
     DISABLE_USER_ACCOUNT_CREATION: "true"
 
+    # -- Use a database connection pool.
+    # -- This setting _might_ improve performance, but is problematic: one connection
+    # -- pool is used per celery worker, which can max out the number of connections
+    # -- allowed by Postgres (default 100). Furthermore, there might be a bug in CUBE
+    # -- where disconnections are not reconnected.
+    DATABASE_CONN_POOL: "false"
+
+    # DATABASE_CONN_POOL_MIN_SIZE: 4
+    # DATABASE_CONN_POOL_MAX_SIZE: 8
+    # DATABASE_CONN_POOL_TIMEOUT: 10
+
   # -- Additional secret environment variables for CUBE.
   # -- Note: if `SECRET_KEY` is unset, its previous value will be looked up,
   # -- or a random value will be generated for you.
