@@ -523,6 +523,21 @@ config:
   DicomWeb:
     Enable: true
 
+  # -- Path to the CA (certification authority) certificates to validate
+  # -- peers in HTTPS requests. From curl documentation ("--cacert"
+  # -- option): "Tells curl to use the specified certificate file to
+  # -- verify the peers. The file may contain multiple CA
+  # -- certificates. The certificate(s) must be in PEM format." On
+  # -- Debian-based systems, this option can be set to
+  # -- "/etc/ssl/certs/ca-certificates.crt".
+  # -- Starting with Orthanc 1.12.6 and provided that Orthanc has been
+  # -- built with libcurl > 8.2.0, when this option is empty,
+  # -- Orthanc uses the operating system native CA store ("--ca-native"
+  # -- option)
+  # --
+  # -- NOTE: you may need to change this if using a custom image.
+  HttpsCACertificates: /etc/ssl/certs/ca-certificates.crt
+
   # -- Path to the directory where Orthanc stores its large temporary
   # -- files. The content of this folder can be safely deleted once
   # -- Orthanc is stopped. The folder must exist. The corresponding

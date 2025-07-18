@@ -106,6 +106,7 @@ spec:
               containerPort: {{ .Values.config.DicomPort }}
               protocol: TCP
             {{- end }}
+          {{- /* TODO automatically add Authorization header if necessary */}}
           {{- with .Values.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
