@@ -81,15 +81,6 @@ cube:
     DJANGO_SECURE_PROXY_SSL_HEADER: ""
     DJANGO_USE_X_FORWARDED_HOST: "false"
 
-    ## Granian ASGI web server performance tuning
-    ## ref: https://github.com/emmett-framework/granian/blob/master/README.md#options
-    # -- Granian web server number of workers
-    GRANIAN_WORKERS: "1"
-    # -- Granian web server number of runtime threads (per worker)
-    GRANIAN_RUNTIME_THREADS: "1"
-    # -- Granian web server number of blocking threads (per worker)
-    GRANIAN_BLOCKING_THREADS: "1"
-
     ## LDAP configuration
     # -- Enable LDAP authentication
     AUTH_LDAP: "false"
@@ -191,7 +182,7 @@ cube:
       nodePortHost:
 
     # -- CUBE server command.
-    command: ["granian", "--host", "0.0.0.0", "--interface", "asginl", "config.asgi:application"]
+    command: ["python3", "-m", "uvicorn", "--host", "0.0.0.0", "--port", "8000", "config.asgi:application"]
     # -- Resources for the HTTP server (ASGI).
     resources:
       requests:
@@ -473,7 +464,7 @@ pfdcm:
       memory: 512Mi
 
   hostPort:
-  
+
   readinessProbe: {}
 
   livenessProbe: {}

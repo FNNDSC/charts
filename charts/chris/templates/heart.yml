@@ -136,14 +136,13 @@ spec:
               cpu: 100m
         - name: server-private
           command:
-            - granian
-            - --host=0.0.0.0
-            - --port={{ include "chris.heart.port" . }}
-            - --workers=1
-            - --threads=1
-            - --blocking-threads=1
-            - --threading-mode=workers
-            - --interface=asginl
+            - python3
+            - '-m'
+            - 'uvicorn'
+            - '--host'
+            - '0.0.0.0'
+            - '--port'
+            - '{{ include "chris.heart.port" . }}'
             - 'config.asgi:application'
           {{- include "cube.container" . | nindent 10 }}
           ports:
