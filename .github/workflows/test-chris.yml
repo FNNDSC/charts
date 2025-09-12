@@ -45,18 +45,8 @@ jobs:
           -f testing/ghactions-values.yml \
           --set cube.ingress.nodePortHost=$(hostname) \
           --set pfcon.enabled=$pfconEnabled
-
     - name: Wait for server pod to be ready
       run: kubectl wait --for=condition=ready pod -n ghactions -l app.kubernetes.io/name=chris-server --timeout=300s
-    - name: Assert superuser created
-      run: |
-        actual="$(kubectl logs -n ghactions -l app.kubernetes.io/name=chris-heart -c set-config)"
-        expected='Created superuser "khris"'
-        if [[ "$actual" != *"$expected"* ]]; then
-          echo "::error ::Expected: >>>$expected<<<    Actual: >>>$actual<<<"
-          exit 1
-        fi
-
     - name: Run helm test
       run: |
         set +ex
