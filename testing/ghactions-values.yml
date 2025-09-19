@@ -1,5 +1,7 @@
 # FIXME FIXME FIXME
 cube:
+  config:
+    DISABLE_USER_ACCOUNT_CREATION: "false"
   # Resource requests are lowered for Github's VMs
   # https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners/about-github-hosted-runners#supported-runners-and-hardware-resources
   workerMains:

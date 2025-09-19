@@ -18,7 +18,7 @@ cube:
         cpu: 1
         memory: 2Gi
   config:
-    GUNICORN_CMD_ARGS: "--workers=4 --timeout=3600"
+    DISABLE_USER_ACCOUNT_CREATION: "false"
 
 postgresql:
   primary:
