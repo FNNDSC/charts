@@ -14,6 +14,7 @@ A [Helm](https://helm.sh/) Chart for deploying [Orthanc](https://orthanc.uclouva
   - These integrations are optional. Using a SQLite index and filesystem storage are both supported with filesystem-type PersistentVolumes.
 - Automatic setup of client-side S3 object storage encryption.
 - Optionally enable [oauth2-proxy](https://oauth2-proxy.github.io/oauth2-proxy/) as a subchart for single-sign-on (SSO).
+- Optionally configure either [Prometheus ServiceMonitor](https://github.com/prometheus-operator/prometheus-operator) or [OpenTelemetry Collector](https://github.com/open-telemetry/opentelemetry-operator) for ingestion of Orthanc's metrics.
 - Unit-tested using [helm-unittest](https://github.com/helm-unittest/helm-unittest).
 - Default UI is [Orthanc Explorer 2](https://orthanc.uclouvain.be/book/plugins/orthanc-explorer-2.html) with dark theme.
 
@@ -47,7 +48,7 @@ config:
 #### Orthanc using CrunchyData PGO, S3 ObjectBucketClaim, and OIDC Authentication
 
 See our production Helmfile example here:
-https://github.com/FNNDSC/NERC/blob/ebfe519f23bc83e49b5bdd75e1bb1b9890811cba/blt/helmfile.d/03-orthanc.yaml
+https://github.com/FNNDSC/NERC/blob/296fc65e733da3903353e8ec947872d94f5ee8df/blt/helmfile.d/03-orthanc.yaml
 
 ## Alternatives
 
