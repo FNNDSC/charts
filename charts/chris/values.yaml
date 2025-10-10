@@ -574,7 +574,7 @@ pfdcm:
     image:
       repository: ghcr.io/fnndsc/oxidicom
       pullPolicy: Always
-      tag: "3.0.0"
+      tag: "3.1.0"
     podAnnotations: {}
     # -- (optional) hostPort for DICOM listener
     hostPort:
