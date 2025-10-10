@@ -1937,6 +1937,35 @@ entries:
     version: 0.1.0
   orthanc:
   - apiVersion: v2
+    appVersion: 1.12.9
+    created: "2025-10-10T18:12:01.559104696Z"
+    dependencies:
+    - condition: oauth2-proxy.enabled
+      name: oauth2-proxy
+      repository: https://oauth2-proxy.github.io/manifests
+      version: ~8.3.1
+    description: Orthanc PACS Server
+    digest: 2c84426e0df847a6cbeddfa26ad54827ff2fed574ffff8bc5c4d213450669d1d
+    home: https://www.orthanc-server.com/
+    keywords:
+    - DICOM
+    - PACS
+    - medicine
+    - science
+    - image processing
+    maintainers:
+    - email: dev@babyMRI.org
+      name: The FNNDSC Dev Team
+      url: https://fnndsc.org
+    name: orthanc
+    sources:
+    - https://github.com/FNNDSC/charts/tree/master/charts/orthanc
+    - https://orthanc.uclouvain.be/hg/orthanc/
+    type: application
+    urls:
+    - https://github.com/FNNDSC/charts/releases/download/orthanc-3.0.0/orthanc-3.0.0.tgz
+    version: 3.0.0
+  - apiVersion: v2
     appVersion: 1.12.6
     created: "2025-09-19T18:15:08.483962809Z"
     dependencies:
@@ -2475,4 +2504,4 @@ entries:
     urls:
     - https://github.com/FNNDSC/charts/releases/download/util-0.1.0/util-0.1.0.tgz
     version: 0.1.0
-generated: "2025-10-10T17:37:22.522597148Z"
+generated: "2025-10-10T18:12:01.559278569Z"
