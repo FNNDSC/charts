@@ -675,13 +675,6 @@ oauth2-proxy:
   alphaConfig:
     enabled: false
 
-  image:
-    repository: "quay.io/oauth2-proxy/oauth2-proxy"
-    # appVersion is used by default
-    tag: ""
-    pullPolicy: "IfNotPresent"
-    command: []
-
   ingress:
     enabled: false
     # className: nginx
