@@ -1,0 +1,48 @@
+{{- if (hasKey (.Values.pman | default (dict)) "setSecurityContext") }}
+  {{- fail "Deprecated configuration: pman.setSecurityContext was renamed to config.setSecurityContext" }}
+{{- end }}
+{{- range $k, $v := (.Values.pfcon | default (dict)) }}
+  {{- printf "Deprecated configuration: pfcon.%s was renamed to %s" $k $k | fail }}
+{{- end }}
+{{- if (hasKey .Values "pman") }}
+  {{- fail "Deprecated configuration: pman was removed, please unset all values in pman.* of the pfcon chart." }}
+{{- end }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "pfcon.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "pfcon.labels" . | nindent 4 }}
+data:
+  {{- if (hasKey .Values.extraEnv "PFCON_INNETWORK") }}
+  {{- fail "Do not set extraEnv.PFCON_INNETWORK. Use config.innetwork instead." }}
+  {{- else if (hasKey .Values.extraEnv "STORAGE_ENV") }}
+  {{- fail "Do not set extraEnv.STORAGE_ENV. Use config.storageEnv instead." }}
+  {{- end }}
+  PFCON_INNETWORK: {{ .Values.config.innetwork | quote }}
+  STORAGE_ENV: {{ .Values.config.storageEnv }}
+  {{- if (hasKey .Values.extraEnv "SECRET_KEY") }}
+  {{- fail "Do not set extraEnv.SECRET_KEY. Use secretKey instead." }}
+  {{- end }}
+  CONTAINER_ENV: kubernetes
+  STORAGE_TYPE: kubernetes_pvc
+  JOB_NAMESPACE: {{ .Release.Namespace }}
+  VOLUME_NAME: {{ include "pfcon.storebase" . }}
+  {{- toYaml .Values.extraEnv | nindent 2 }}
+  {{- $setSecurityContextIsSome := kindIs "bool" .Values.config.setSecurityContext }}
+  {{- if (and (hasKey .Values.extraEnv "CONTAINER_USER") $setSecurityContextIsSome (not .Values.config.setSecurityContext)) }}
+  {{- fail "Cannot set value for .Values.extraEnv.CONTAINER_USER because .Values.config.setSecurityContext=false." }}
+  {{- end }}
+  {{- $setSecurityContextIsNone := not $setSecurityContextIsSome }}
+  {{- $isOpenShift := .Capabilities.APIVersions.Has "security.openshift.io/v1/SecurityContextConstraints" }}
+  {{- if (and (not (hasKey .Values.extraEnv "CONTAINER_USER"))
+         (or (and $setSecurityContextIsSome .Values.config.setSecurityContext)
+             (and $setSecurityContextIsNone (not $isOpenShift)))) }}
+  {{- if .Values.global.podSecurityContext }}
+  CONTAINER_USER: {{ printf "%d:%d" (int64 (.Values.global.podSecurityContext.runAsUser | default "1001"))
+                                    (int64 (.Values.global.podSecurityContext.runAsGroup | default "0")) | quote }}
+  {{- else }}
+  CONTAINER_USER: "1001:0"  # default user of fnndsc/cube's base image
+  {{- end }}
+  {{- end }}

@@ -1,47 +1,47 @@
-suite: pman-config.yml setSecurityContext
+suite: config.yml config.setSecurityContext
 templates:
-  - pman-config.yml
+  - config.yml
 tests:
   - it: should set CONTAINER_USER to '1001:0' by default (non-OpenShift)
     asserts:
       - equal:
           path: data.CONTAINER_USER
           value: '1001:0'
-  - it: should set CONTAINER_USER to '1001:0' when setSecurityContext=true and global.podSecurityContext is undefined
+  - it: should set CONTAINER_USER to '1001:0' when config.setSecurityContext=true and global.podSecurityContext is undefined
     set:
-      pman.setSecurityContext: true
+      config.setSecurityContext: true
     asserts:
       - equal:
           path: data.CONTAINER_USER
           value: '1001:0'
-  - it: should set CONTAINER_USER to the value of global.podSecurityContext when setSecurityContext=true
+  - it: should set CONTAINER_USER to the value of global.podSecurityContext when config.setSecurityContext=true
     set:
       global.podSecurityContext.runAsUser: 50505
       global.podSecurityContext.runAsGroup: 303
-      pman.setSecurityContext: true
+      config.setSecurityContext: true
     asserts:
       - equal:
           path: data.CONTAINER_USER
           value: '50505:303'
-  - it: should allow CONTAINER_USER to be set when setSecurityContext is unset
+  - it: should allow CONTAINER_USER to be set when config.setSecurityContext is unset
     set:
-      pman.extraEnv.CONTAINER_USER: '20202:0'
+      extraEnv.CONTAINER_USER: '20202:0'
     asserts:
       - equal:
           path: data.CONTAINER_USER
           value: '20202:0'
-  - it: should allow CONTAINER_USER to be set when setSecurityContext=true
+  - it: should allow CONTAINER_USER to be set when config.setSecurityContext=true
     set:
-      pman.extraEnv.CONTAINER_USER: '20202:0'
-      pman.setSecurityContext: true
+      extraEnv.CONTAINER_USER: '20202:0'
+      config.setSecurityContext: true
     asserts:
       - equal:
           path: data.CONTAINER_USER
           value: '20202:0'
-  - it: should disallow setting of CONTAINER_USER when setSecurityContext=false
+  - it: should disallow setting of CONTAINER_USER when config.setSecurityContext=false
     set:
-      pman.extraEnv.CONTAINER_USER: '20202:0'
-      pman.setSecurityContext: false
+      extraEnv.CONTAINER_USER: '20202:0'
+      config.setSecurityContext: false
     asserts:
       - failedTemplate:
-          errorMessage: Cannot set value for .Values.pman.extraEnv.CONTAINER_USER because .Values.pman.setSecurityContext=false.
+          errorMessage: Cannot set value for .Values.extraEnv.CONTAINER_USER because .Values.config.setSecurityContext=false.

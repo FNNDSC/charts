@@ -45,87 +45,51 @@ nodeSelector: {}
 # -- or a value will be randomly generated.
 password:
 
-pfcon:
-  image:
-    repository: ghcr.io/fnndsc/pfcon
-    pullPolicy: IfNotPresent
-    # Overrides the image tag whose default is the chart appVersion.
-    tag: ""
+image:
+  repository: ghcr.io/fnndsc/pfcon
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ""
 
-  resources:
-    limits:
-      cpu: 500m
-      memory: 1Gi
-    requests:
-      cpu: 500m
-      memory: 384Mi
+resources:
+  limits:
+    cpu: 500m
+    memory: 1Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi
 
-  # -- flask secret key. If unset, either the previous value will be obtained from the Kubernetes API,
-  # -- or a value will be randomly generated.
-  secretKey:
+# -- flask secret key. If unset, either the previous value will be obtained from the Kubernetes API,
+# -- or a value will be randomly generated.
+secretKey:
 
-  # -- pfcon configuration. You probably shouldn't change this.
-  config:
-    innetwork: true
-    storageEnv: fslink
-
-  # -- Extra environment variables.
-  extraEnv:
-    GUNICORN_CMD_ARGS: "--workers=4 --timeout=3600"
-
-  # -- pfcon container hostPort.
-  hostPort:
-    
-  # -- Container security context for pfcon.
-  securityContext: {}
-
-pman:
-  image:
-    repository: ghcr.io/fnndsc/pman
-    pullPolicy: IfNotPresent
-    tag: "6.1.0"
-
-  # -- pman container containerPort. No reason to change this.
-  containerPort: 5010
-  # -- pman container hostPort.
-  hostPort:
-
-  # It is unnecessary to increase pman's resources to above the minimum because
-  # pman doesn't do anything besides sending and receiving HTTP requests.
-  # -- Resources for pman container.
-  # -- All pman does all day is send and receive HTTP requests, so its CPU usage stays below 0.5 even with --workers=32.
-  # -- It uses <1GiB memory with --workers=4, <2GiB memory with --workers=32.
-  resources:
-    limits:
-      cpu: 200m
-      memory: 1Gi
-    requests:
-      cpu: 200m
-      memory: 512Mi
-
-  # Podman settings
-  podman:
-    enabled: false
-    socket:  # must provide socket if using podman
-
-  # -- flask secret key. If unset, either the previous value will be obtained from the Kubernetes API,
-  # -- or a value will be randomly generated.
-  secretKey:
-
-  # -- pman configuration environment variables
-  # -- https://github.com/fnndsc/pman#environment-variables
-  # -- CONTAINER_ENV, STORAGE_TYPE, VOLUME_NAME, and CONTAINER_USER are handled automatically.
-  extraEnv:
-    JOB_LABELS: chrisproject.org/job=plugininstance
-    ENABLE_HOME_WORKAROUND: "yes"
-    REMOVE_JOBS: "yes"
-    IGNORE_LIMITS: "no"
-    GUNICORN_CMD_ARGS: "--workers=4 --timeout=30"
-
-  # -- Container security context for pfcon.
-  securityContext: {}
-
+# -- pfcon configuration. You probably shouldn't change this.
+config:
+  innetwork: true
+  storageEnv: fslink
   # -- Set securityContext of containers created by pman to have the same securityContext as .global.podSecurityContext
   # -- or the default fnndsc/cube container user, so that the container user can write to the shared volume's filesystem.
   # -- Default behavior is to detect whether on OpenShift: if so, set as false, true otherwise.
   setSecurityContext:
+
+# -- Extra environment variables.
+# -- https://github.com/FNNDSC/pfcon#environment-variables
+# -- HINT: CONTAINER_ENV, STORAGE_TYPE, VOLUME_NAME, and CONTAINER_USER
+#          are handled automatically by Helm templating.
+extraEnv:
+  GUNICORN_CMD_ARGS: "--workers=4 --timeout=300"
+  JOB_LABELS: chrisproject.org/job=plugininstance
+  ENABLE_HOME_WORKAROUND: "yes"
+  REMOVE_JOBS: "yes"
+  IGNORE_LIMITS: "no"
+
+# -- pfcon container hostPort.
+hostPort:
+
+# -- Container security context for pfcon.
+securityContext: {}
+
+# -- WIP support for `podman kube play`
+podman:
+  enabled: false
+  socket:

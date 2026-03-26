@@ -26,5 +26,5 @@ spec:
         - '{"pfcon_user": "$(PFCON_USER)", "pfcon_password": "$(PFCON_PASSWORD)"}'
       envFrom:
         - secretRef:
-            name: {{ .Release.Name }}-pfcon
+            name: {{ include "pfcon.fullname" . }}
   restartPolicy: Never

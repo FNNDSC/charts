@@ -1,9 +1,9 @@
-suite: pman-config.yml setSecurityContext (OpenShift)
+suite: config.yml setSecurityContext (OpenShift)
 capabilities:
   apiVersions:
     - security.openshift.io/v1/SecurityContextConstraints
 templates:
-  - pman-config.yml
+  - config.yml
 tests:
   - it: should not set CONTAINER_USER in OpenShift
     asserts:
@@ -13,7 +13,7 @@ tests:
     set:
       global.podSecurityContext.runAsUser: 50505
       global.podSecurityContext.runAsGroup: 303
-      pman.setSecurityContext: true
+      config.setSecurityContext: true
     asserts:
       - equal:
           path: data.CONTAINER_USER

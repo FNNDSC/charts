@@ -1,0 +1,40 @@
+suite: Validation of pfcon config
+templates:
+  - config.yml
+tests:
+  - it: should show an error if extraEnv.SECRET_KEY is set
+    set:
+      extraEnv.SECRET_KEY: abc123
+    asserts:
+      - failedTemplate:
+          errorMessage: Do not set extraEnv.SECRET_KEY. Use secretKey instead.
+  - it: should not allow extraEnv.PFCON_INNETWORK to be set
+    set:
+      extraEnv.PFCON_INNETWORK: true
+    asserts:
+      - failedTemplate:
+          errorMessage: Do not set extraEnv.PFCON_INNETWORK. Use config.innetwork instead.
+  - it: should not allow extraEnv.STORAGE_ENV to be set
+    set:
+      extraEnv.STORAGE_ENV: "filesystem"
+    asserts:
+      - failedTemplate:
+          errorMessage: Do not set extraEnv.STORAGE_ENV. Use config.storageEnv instead.
+  - it: should fail when configuration has values under pfcon.* (deprecated in pfcon-2.0.0)
+    set:
+      pfcon.image.pullPolicy: Always
+    asserts:
+      - failedTemplate:
+          errorMessage: "Deprecated configuration: pfcon.image was renamed to image"
+  - it: should fail when configuration has values under pman.* (deprecated in pfcon-2.0.0)
+    set:
+      pman.image.pullPolicy: Always
+    asserts:
+      - failedTemplate:
+          errorMessage: "Deprecated configuration: pman was removed, please unset all values in pman.* of the pfcon chart."
+  - it: should show unique error message for the deprecated configuration pman.setSecurityContext
+    set:
+      pman.setSecurityContext: true
+    asserts:
+      - failedTemplate:
+          errorMessage: "Deprecated configuration: pman.setSecurityContext was renamed to config.setSecurityContext"
