@@ -21,98 +21,31 @@ Helm charts for the [FNNDSC](https://fnndsc.org) and the [_ChRIS_ Project](https
 If you already have Docker installed, the easiest way to obtain k8s is [KinD](https://kind.sigs.k8s.io/).
 KinD installation instructions are here: https://kind.sigs.k8s.io/docs/user/quick-start/
 
-Development scripts are defined in `testing/justfile`, which uses the [just](https://github.com/casey/just) syntax.
-You should install `just`: https://github.com/casey/just#installation
+TODO: add instructions for testing in KinD.
 
-Then you can run things like:
+### Editing Dependent Charts
 
-```shell
-git switch dev
-helm dependency update ./charts/chris
+The _pfcon_ and _chris_ charts are both defined here in the same repo, and
+_pfcon_ is a chart dependency of _chris_. When you want to make local
+modifications to _pfcon_ and want to try them out in conjunction with the
+_chris_ chart, you need to do a workaround. Otherwise, `helm` will want to pull
+_pfcon_ from "prod" instead of looking at your local development copy.
 
-cd testing
+`justfile` implements a workaround by running an OCI registry on `localhost`.
 
-just kind
-just up
-just wait
-just test
-```
+1. In `./charts/chris/Chart.yaml` replace `https://fnndsc.github.io/charts`
+   with `oci://localhost:5000/fnndsc/charts/pfcon`
+2. Run `just refresh`
+3. Do your local trying
+4. When you're ready, run `just replace` before you `git commit`
+5. Lastly, clean up by running `just down`
 
-Optionally, to use [_chrisomatic_](https://github.com/FNNDSC/chrisomatic):
+#### Publishing Changes to _pfcon_
 
-```shell
-just chrisomatic
-```
+1. Increase `version` in `charts/pfcon/Chart.yaml` and push to `dev` branch
+2. Use a PR to merge `dev` into `master`
+3. After the release for pfcon is created by GitHub Actions, increase the
+   version and _pfcon_ dependency version in `charts/chris/Chart.yaml`
+4. Run `helm dependency update charts/chris`
+5. Commit and push to `dev`, then make a PR to merge `dev` into `master`
 
-Then, graceful tear down:
-
-```shell
-just down
-just unkind
-```
-
-### Making Modifications
-
-Editing _pfcon_'s templates can be tricky because it's a dependency from the same repo as _chris_.
-Here's a workaround:
-
-```shell
-cd charts/chris/charts
-rm ./pfcon-*.tgz
-ln -sv ../../pfcon
-```
-
-To publish your changes, increase `version` in `charts/pfcon/Chart.yaml` then merge the `dev`
-branch into `master`. Once the release is created by GitHub Actions, increase the `version` and
-_pfcon_ dependency version in `charts/chris/Chart.yaml` then update `charts/chris/Chart.lock` by running
-
-```shell
-cd charts/chris
-rm charts/pfcon
-helm dependency update .
-```
-
-Finally, push to master once more.
-
-### Observability
-
-Optionally, a Kubernetes observability stack can be deployed into the Kind cluster.
-You can choose between OpenObserve or a Grafana-based stack.
-
-#### OpenObserve
-
-OpenObserve is much more efficient than Grafana. I also have log collection set up for OpenObserve.
-However, OpenObserve's visualization and data querying is not as good as Grafana. It is recommended
-to use OpenObserve if you (a) need to aggregate and search through logs, and/or (b) your workstation
-has less than or equal to 8 CPUs, 16GB RAM.
-
-Logs are collected using [Vector](https://vector.dev/) and visualized using [OpenObserve](https://openobserve.ai/).
-To run the observability stack and open the dashboard, run
-
-```shell
-just openobserve
-```
-
-Log in with the email `dev@babymri.org` password `chris1234`.
-
-Alternatively, you can get logs from the command-line using the `just olog [POD_NAME_LABEL]` command.
-Examples:
-
-```shell
-just olog pfcon
-
-just olog chris-heart
-```
-
-##### How It Works
-
-Two releases of Vector are made:
-
-- "Agent" mode which runs on every node to collect logs and host metrics
-- "Stateless-Aggregator" which scrapes Kubelet `/metrics/cadvisor`
-
-These logs and metrics are shipped to OpenObserve.
-
-#### Prometheus Stack
-
-TODO
