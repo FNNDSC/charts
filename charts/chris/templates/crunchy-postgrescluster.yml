@@ -1,0 +1,39 @@
+{{- define "chris.crunchyPgo.apiVersion" -}}
+  {{- if .Capabilities.APIVersions.Has "postgres-operator.crunchydata.com/v1" -}}
+    postgres-operator.crunchydata.com/v1
+  {{- else if .Capabilities.APIVersions.Has "postgres-operator.crunchydata.com/v1beta1" -}}
+    postgres-operator.crunchydata.com/v1beta1
+  {{- else -}}
+    {{- fail "Cannot set crunchyPgo.enabled=true because your Kubernetes cluster does not support it. Please install the Crunchy PGO: https://access.crunchydata.com/documentation/postgres-operator/latest/installation" -}}
+  {{- end -}}
+{{- end -}}
+
+{{- define "chris.crunchyPgo.defaults" -}}
+kind: PostgresCluster
+apiVersion: {{ include "chris.crunchyPgo.apiVersion" . }}
+metadata:
+  name: {{ include "chris.fullname" . }}
+  annotations:
+    postgres-operator.crunchydata.com/autoCreateUserSchema: "true"
+  labels:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: database
+    app.kubernetes.io/part-of: chris
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    helm.sh/chart: {{ include "chris.chart" . }}
+{{- end -}}
+
+{{- if .Values.global.defaultStorageClass -}}
+  {{- range $inst := .Values.crunchyPgo.spec.instances -}}
+    {{- if (not (hasKey $inst.dataVolumeClaimSpec "storageClassName")) -}}
+      {{- $sc := (dict "storageClassName" $.Values.global.defaultStorageClass) -}}
+      {{- $_ := mustMerge $inst.dataVolumeClaimSpec $sc -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+
+{{- if .Values.crunchyPgo.enabled }}
+  {{- with mustMerge .Values.crunchyPgo (include "chris.crunchyPgo.defaults" . | fromYaml) }}
+    {{- toYaml . }}
+  {{- end }}
+{{- end }}

@@ -1,6 +1,6 @@
 suite: pfcon currently enabled
 templates:
-  - heart.yml
+  - storage.yml
 release:
   name: haspfcon
   namespace: changepfconenabled
@@ -25,10 +25,10 @@ tests:
       pfcon.enabled: false
     asserts:
       - failedTemplate:
-          errorMessage: Cannot set pfcon.enabled=false and/or pfcon.pfcon.config.innetwork=false now because CUBE currently depends on pfcon configured in "innetwork" mode for storage.
+          errorMessage: Cannot set pfcon.enabled=false and/or pfcon.config.innetwork=false now because CUBE currently depends on pfcon configured in "innetwork" mode for storage.
   - it: should not allow pfcon to be changed to not innetwork.
     set:
-      pfcon.pfcon.config.innetwork: false
+      pfcon.config.innetwork: false
     asserts:
       - failedTemplate:
-          errorMessage: Cannot set pfcon.enabled=false and/or pfcon.pfcon.config.innetwork=false now because CUBE currently depends on pfcon configured in "innetwork" mode for storage.
+          errorMessage: Cannot set pfcon.enabled=false and/or pfcon.config.innetwork=false now because CUBE currently depends on pfcon configured in "innetwork" mode for storage.

@@ -1,8 +1,26 @@
+{{- if .Release.IsUpgrade -}}
+  {{- /*
+        Validators to check that you aren't self-destructive.
+
+        You should never:
+        - enable "innetwork pfcon" where previously it wasn't
+        - disable "innetwork pfcon" where it previously was
+  */ -}}
+  {{- $isUsingOwnVolume := (eq "yes" (include "cube.useOwnVolume" .)) }}
+  {{- $wasUsingOwnVolume := (not (empty (lookup "v1" "PersistentVolumeClaim" .Release.Namespace (include "chris.fullname" .)))) -}}
+  {{- if (and $isUsingOwnVolume (not $wasUsingOwnVolume)) }}
+    {{- fail "Cannot set pfcon.enabled=false and/or pfcon.config.innetwork=false now because CUBE currently depends on pfcon configured in \"innetwork\" mode for storage." -}}
+  {{- else if (and (not $isUsingOwnVolume) $wasUsingOwnVolume) -}}
+    {{- fail "Cannot set pfcon.enabled=true and/or pfcon.config.innetwork=true now because CUBE is using its own PersistentVolumeClaim for storage." -}}
+  {{- end -}}
+{{- end -}}
+
+
 {{- if (include "cube.useOwnVolume" .) -}}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: {{ .Release.Name }}-cube-files
+  name: {{ include "chris.fullname" . }}
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "cube.labels" . | nindent 4 }}
@@ -10,9 +28,10 @@ spec:
   {{- with .Values.cube.storage.storageClass | default .Values.global.defaultStorageClass }}
   storageClassName: {{ . }}
   {{- end }}
-  accessModes:
-  {{- toYaml .Values.cube.storage.accessModes | nindent 4 }}
+  {{- with .Values.cube.storage.accessModes }}
+  accessModes: {{ toJson . }}
+  {{- end }}
   resources:
     requests:
       storage: {{ .Values.cube.storage.size }}
-{{- end }}
+{{- end -}}

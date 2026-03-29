@@ -34,40 +34,69 @@ Create chart name and version as used by the chart label.
 Common labels
 */}}
 {{- define "chris.labels" -}}
-helm.sh/chart: {{ include "chris.chart" . }}
-app.kubernetes.io/managed-by: {{ .Release.Service }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 app.kubernetes.io/part-of: chris
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+helm.sh/chart: {{ include "chris.chart" . }}
 {{- end }}
 
 {{- define "cube.labels" -}}
 {{ include "chris.labels" . }}
-app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 app.kubernetes.io/component: backend
 {{- end }}
 
+{{- define "chris.migrate-job" -}}
+{{- include "chris.fullname" . -}}-migrate-{{ .Release.Revision }}
+{{- end -}}
+
+{{- define "chris.migrate-observer" -}}
+{{- include "chris.fullname" . -}}-migrate-observer
+{{- end -}}
+
 {{- define "chris.nats.address" -}}
-{{- if .Values.nats.auth.enabled -}}
-{{- fail "ChRIS does not work with NATS auth, please set .Values.nats.auth.enabled=false" -}}
-{{- end -}}
-nats://{{ include "common.names.fullname" .Subcharts.nats }}:{{ .Values.nats.service.ports.client | default 4222 }}
-{{- end -}}
-
-{{- define "chris.heart.name" -}}
-{{ include "chris.fullname" . }}-heart
+{{- /* TODO NATS was removed. */}}
+{{- /* NATS_ADDRESS must be set, even if NATS is disabled/not used. */}}
+nats://this.is.a.placeholder
 {{- end -}}
 
-{{- define "chris.heart.port" -}}
-8000
-{{- end -}}
+{{- define "cube.useOwnVolume" -}}
+  {{- if (and .Values.pfcon.enabled .Values.pfcon.config.innetwork) -}}
+    {{- /* no (empty value) */ -}}
+  {{- else -}}
+    yes
+  {{- end }}
+{{- end }}
 
-{{- define "chris.heart.appName" -}}
-{{ include "chris.name" . }}-heart
-{{- end -}}
+{{- define "cube.filesVolume" -}}
+  {{- if (include "cube.useOwnVolume" .) -}}
+    {{- /* will be created by ./storage.yml */ -}}
+    {{- include "chris.fullname" . -}}
+  {{- else -}}
+  {{- /* defined in ../../pfcon/templates/storage.yml */ -}}
+    {{ .Release.Name }}-storebase
+  {{- end }}
+{{- end }}
 
-{{- define "chris.heart.matcher" -}}
-app.kubernetes.io/name: {{ include "chris.heart.appName" . }}
-app.kubernetes.io/instance: {{ .Release.Name }}
-{{- end -}}
+{{- define "cube.podAffinityWorkaround" -}}
+{{ if .Values.cube.enablePodAffinityWorkaround }}
+affinity:
+  podAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+          - key: app.kubernetes.io/instance
+            operator: In
+            values:
+            - {{ .Release.Name }}
+          {{- /* if CUBE is using its own volume, pods should be attracted to heart. Otherwise, pods should be attracted to pfcon. */}}
+          - key: app.kubernetes.io/name
+            operator: In
+            values:
+            - {{ if (include "cube.useOwnVolume" .) }}{{ include "chris.heart.appName" . }}{{ else }}pfcon{{ end }}
+        topologyKey: kubernetes.io/hostname
+{{- end }}
+{{- end }}
 
 {{/*
 pfdcm stuff
@@ -75,12 +104,12 @@ pfdcm stuff
 */}}
 
 {{- define "chris.pfdcmInternalAddress" -}}
-{{- if (not (and .Values.pfdcm.enabled)) -}}
-http://localhost
-{{- else if (eq .Values.pfdcm.kind "Deployment") -}}
-http://{{ include "pfdcm.fullname" . }}:{{ .Values.pfdcm.service.port }}
-{{- else -}}
-http://{{ include "pfdcm.fullname" . }}.{{ .Release.Namespace }}.svc
-{{- end -}}
+  {{- if (not (and .Values.pfdcm.enabled)) -}}
+    http://this.is.a.placeholder
+  {{- else if (eq .Values.pfdcm.kind "Deployment") -}}
+    http://{{ include "pfdcm.fullname" . }}:{{ .Values.pfdcm.service.port }}
+  {{- else -}}
+    http://{{ include "pfdcm.fullname" . }}.{{ .Release.Namespace }}.svc
+  {{- end -}}
 {{- end -}}
 

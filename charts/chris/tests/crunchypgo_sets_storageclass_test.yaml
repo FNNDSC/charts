@@ -1,0 +1,43 @@
+suite: crunchyPgo configuration of storageClassName
+templates:
+  - crunchy-postgrescluster.yml
+capabilities:
+  apiVersions:
+    - postgres-operator.crunchydata.com/v1
+tests:
+  - it: should not set storageClassName
+    set:
+      crunchyPgo.enabled: true
+    asserts:
+      - notExists:
+          path: spec.instances[0].dataVolumeClaimSpec.storageClassName
+
+  - it: should not change storageClassName=""
+    set:
+      global:
+        defaultStorageClass: donotuse
+      crunchyPgo:
+        enabled: true
+        spec:
+          instances:
+            - dataVolumeClaimSpec:
+                storageClassName: ""
+    asserts:
+      - equal:
+          path: spec.instances[0].dataVolumeClaimSpec.storageClassName
+          value: ""
+
+  - it: should set storageClassName to global.defaultStorageClass
+    set:
+      global:
+        defaultStorageClass: cool-storage
+      crunchyPgo:
+        enabled: true
+        spec:
+          instances:
+            - dataVolumeClaimSpec:
+                accessModes: [ ReadWriteOncePod ]
+    asserts:
+      - equal:
+          path: spec.instances[0].dataVolumeClaimSpec.storageClassName
+          value: cool-storage

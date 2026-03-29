@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ .Release.Name }}-server
+  name: {{ include "chris.fullname" . }}
   namespace: {{ .Release.Namespace }}
   labels:
-    app.kubernetes.io/name: {{ include "chris.name" . }}-server
+    app.kubernetes.io/name: {{ include "chris.fullname" . }}
     {{- include "cube.labels" . | nindent 4 }}
 spec:
   type: {{ .Values.cube.server.service.type }}

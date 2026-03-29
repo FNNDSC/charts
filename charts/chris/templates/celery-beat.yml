@@ -1,0 +1,5 @@
+{{- include "cube.deployment" (mustMerge (dict
+  "name" "celery-beat"
+  "command" .Values.cube.celeryBeat.command
+  "resources" .Values.cube.celeryBeat.resources
+) . ) -}}

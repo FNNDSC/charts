@@ -1,5 +1,3 @@
-# This file is for cutomizing how chris is deployed.
-
 nameOverride: ""
 fullnameOverride: ""
 
@@ -14,17 +12,10 @@ global:
   #   runAsUser: 123456
   #   runAsGroup: 789
 
-  # -- Bitnami subchart OpenShift compatibility settings
-  # compatibility:
-  #   openshift:
-  #     # optional, adapt security context of Bitnami subcharts for OpenShift compatibility
-  #     adaptSecurityContext: auto
-
   # -- Image pull secrets.
   # -- Ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
   imagePullSecrets: []
     # - name: my-dockerhub-login
-
 
 # -- Ingress
 ingress:
@@ -68,7 +59,7 @@ cube:
   # -- The default behavior is to use the release name as the job prefix.
   jobPrefix:
 
-  # -- CUBE configuration. N.B.: values must be strings.
+  # -- CUBE configuration. Note: all values must be string.
   config:
     # -- Event polling frequency. Smaller value increases responsiveness at the cost of increased resource
     # -- usage and possible concurrency bugs.
@@ -107,34 +98,68 @@ cube:
     # DATABASE_CONN_POOL_MAX_SIZE: 8
     # DATABASE_CONN_POOL_TIMEOUT: 10
 
+    # -- URL of default peer ChRIS from where to get plugins.
+    CHRIS_STORE_URL: 'https://cube.chrisproject.org/api/v1/'
+
   # -- Additional secret environment variables for CUBE.
-  # -- Note: if `SECRET_KEY` is unset, its previous value will be looked up,
-  # -- or a random value will be generated for you.
   secrets:
     # -- password of the superuser+admin "chris" user account.
     # -- If unset, the previously set value will be used, or a random value will be generated.
     CHRIS_SUPERUSER_PASSWORD: ""
+
+    # -- LDAP bind password.
     # AUTH_LDAP_BIND_PASSWORD: "admin1234"
-    # SECRET_KEY: supersecretkey  # https://docs.djangoproject.com/en/5.1/ref/settings/#secret-key
 
-  # -- Set of default plugins to register with the coupled pfcon (if .pfcon.enabled)
-  # -- Plugins which CUBE is hard-coded to depend on should be listed here.
-  # -- To add plugins for general use, see https://chrisproject.org/docs/tutorials/upload_plugin
-  plugins:
-    - https://cube.chrisproject.org/api/v1/plugins/1/   # pl-dircopy
-    - https://cube.chrisproject.org/api/v1/plugins/2/   # pl-tsdircopy
-    - https://cube.chrisproject.org/api/v1/plugins/3/   # pl-topologicalcopy
+    # -- Django secret key. Ref: https://docs.djangoproject.com/en/5.1/ref/settings/#secret-key
+    # -- Note: if unset, its previous value will be looked up, or a random
+    #          value will be generated for you.
+    # SECRET_KEY: supersecretkey
 
-  # -- CUBE files storage
+    # -- Celery broker URI.
+    # -- Required if `dragonfly.enabled=false`.
+    # CELERY_BROKER_URL: "amqp://guest:password@localhost:5672"
+
+    # -- Configuration of the PostgreSQL database.
+    # -- Required if `.crunchyPgo.enabled=false`.
+    # DATABASE_HOST: "postgres.svc"
+    # DATABASE_PORT: "5432"
+    # POSTGRES_DB: "chris"
+    # POSTGRES_USER: "chris"
+    # POSTGRES_PASSWORD: "elephant"
+
+  # -- Environment variables for _ChRIS_ backend containers.
+  env: {}
+    # - name: POSTGRES_PASSWORD
+    #   valueFrom:
+    #     secretKeyRef:
+    #       name: postgres-db
+    #       key: password
+  # -- Additional envFrom entries to include other ConfigMap/Secret objects.
+  envFrom: {}
+
+  # -- CUBE files storage.
+  # -- NOTE: The default configuration (which is recommended for most cases)
+  # --       is to share one PersistentVolumeClaim between pfcon and CUBE.
+  # --       In this situation, configure `pfcon.storage` and ignore this
+  # --       section.
   storage:
-    # -- Enable persistent storage.
-    # -- The default configuration (which is recommended for most cases)
-    # -- is to share one PersistentVolumeClaim between pfcon and CUBE.
-    # -- Leave `enabled=false` unless you know what you're doing.
     enabled: false
     size: 8Gi
-    accessModes: [ "ReadWriteOnce" ]
-    storageClass: ""
+    accessModes: [ "ReadWriteMany" ]
+    # storageClass: ""
+
+  # -- Celery beat scheduler configuration.
+  celeryBeat:
+    # -- Command to run for the celery beat scheduler.
+    command: ["celery", "-A", "core", "beat", "-l", "info", "--scheduler", "django_celery_beat.schedulers:DatabaseScheduler"]
+    # -- Resources for celery beat. Defaults are good enough.
+    resources:
+      requests:
+        memory: 256Mi
+        cpu: 100m
+      limits:
+        memory: 512Mi
+        cpu: 100m
 
   # -- Main celery worker configuration.
   workerMains:
@@ -177,9 +202,6 @@ cube:
       port: 8000
       # -- CUBE server service nodePort
       nodePort:
-      # -- Hostname of node from which the NodePort will be accessed.
-      # -- (nodePortHost doesn't have an effect, it's only useful for NOTES.txt)
-      nodePortHost:
 
     # -- CUBE server command.
     command: ["python3", "-m", "uvicorn", "--host", "0.0.0.0", "--port", "8000", "config.asgi:application"]
@@ -206,122 +228,172 @@ cube:
       periodSeconds: 5
       timeoutSeconds: 5
 
-# -- Specify a secret containing connection parameters for the PostgreSQL database.
-# -- Ignore if `postgres.enabled=true`.
-postgresSecret:
-  # -- Name of existing secret for the postgres connection parameters.
-  # -- Required if `postgres.enabled=false`.
-  name:
-  # -- Indicate whether the database is a Crunchy Postgres for Kubernetes PostgresCluster.
-  isCrunchy: false
-  # -- Names of items in the secret.
-  # -- If `postgresql.enabled=true` or `postgresSecret.isCrunchy=true` then well-known values
-  # -- will be used for `postgresSecret.keys.*` and there is no need to customize this section.
-  keys:
-    # -- Name of the key for the postgres host value.
-    host:
-    # -- Name of the key for the postgres port value.
-    port:
-    # -- Name of the key for the postgres database value.
-    database:
-    # -- Name of the key for the postgres username value.
-    username:
-    # -- Name of the key for the postgres password value.
-    password:
-    # -- Name of the key for the postgres uri value.
-    uri:
+  podSecurityContext: {}
 
-# -- [SUBCHART] PostgreSQL packaged by Bitnami
-# -- https://github.com/bitnami/charts/tree/main/bitnami/postgresql#parameters
-postgresql:
-  # -- Enable the postgresql subchart. Set `enable=true` to keep life simple,
-  # -- or `enable=false` if using your own existing postgres.
+# -- ServiceAccount of chris-related pods.
+serviceAccount:
+  annotations: {}
+
+# -- ChRIS database migrations.
+migrate:
+  # -- Automatically apply database migrations using a Kubernetes job.
   enabled: true
+  # -- Kubernetes job configuration
+  job:
+    labels:
+      kubernetes.io/description: "ChRIS backend database migration"
+    command: [python, manage.py, migrate, --noinput]
+    resources:
+      requests:
+        cpu: 1
+        memory: 4Gi
+      limits:
+        cpu: 1
+        memory: 4Gi
+    # -- If set, automatically delete the Job a period of time after it finishes.
+    ttlSecondsAfterFinished: 604800 # 1 week
+    # -- Specifies the number of retries before marking this job failed.
+    backoffLimit: 1
+  # -- Configuration of resources which monitor for the completion of database migration.
+  observer:
+    role:
+      annotations:
+        kubernetes.io/description: "Role which may watch for the completion of ChRIS backend database migrations"
+    roleBinding:
+      annotations:
+        kubernetes.io/description: "RoleBinding for allowing account to watch for the completion of ChRIS backend database migrations"
 
-  auth:
-    database: "chris"
-    username: "chris"
+# -- [EXPERIMENTAL] Automatic provisioning using chrisomatic.
+# -- https://github.com/FNNDSC/chrisomatic#readme
+chrisomatic:
+  enabled: true
+  job:
+    image: ghcr.io/fnndsc/chrisomatic:1.0.0
+    resources:
+      requests:
+        cpu: 250m
+        memory: 1Gi
+      limits:
+        cpu: 250m
+        memory: 1Gi
+    # -- If set, automatically delete the Job a period of time after it finishes.
+    ttlSecondsAfterFinished: 604800 # 1 week
+    # -- Specifies the number of retries before marking this job failed.
+    backoffLimit: 1
+  # -- Configuration of how the pfcon from the subchart is registered.
+  subchartPfconConfig:
+    name: "innetwork"
+    description: "Kubernetes cluster compute resource"
+  # -- chrisomatic.yml configuration file.
+  config:
+    # -- Do *not* configure a value for the "on" key in chrisomatic.yml.
+    # -- This section is configured automatically by the chart template.
+    'on': {}
+    cube:
+      # -- Configuration of pfcon services to register as compute resources
+      # -- of this CUBE.
+      # -- If pfcon.enabled=true, it will be prepended to this list automatically
+      # -- by the chart template. You can configure its name and description above
+      # -- in `chrisomatic.subchartPfconConfig`.
+      compute_resource: []
+      # -- Plugins to register to this ChRIS backend.
+      # -- ref: https://github.com/FNNDSC/chrisomatic/blob/master/docs/schema.adoc#cubeplugins
+      plugins:
+        - name: pl-dircopy
+        - name: pl-tsdircopy
+        - name: pl-topologicalcopy
 
-  # -- one of: [standalone, replication]
-  architecture: standalone
+# -- Configuration of pre-defined initContainers.
+predefinedInitContainers:
+  # -- Configuration of the pg_isready initContainer, which polls for the PostgreSQL
+  # -- database to be ready before starting dependent services.
+  wait-db:
+    image: "docker.io/alpine/psql:18.3@sha256:16de1cf6b3f04e78c85707355d98e7003978fe90c2502a174ed224992848a8f1"
+    command:
+      - /bin/sh
+      - -c
+      - until pg_isready -U "$USERNAME" -h "$HOST" -p "$PORT" -d "$DBNAME"; do sleep 1; done
+    resources:
+      requests:
+        cpu: 100m
+        memory: 64Mi
+      limits:
+        cpu: 100m
+        memory: 64Mi
+  wait-migrate:
+    image: "docker.io/alpine/kubectl:1.35.3@sha256:ebf9d81d06441b3183fdc6e2dbc9f5d0db4d0464808b5bcd3c9021f54f6e65db"
+    resources:
+      requests:
+        cpu: 100m
+        memory: 64Mi
+      limits:
+        cpu: 100m
+        memory: 64Mi
 
-  primary:
-    # -- Set container resources according to one common preset (allowed values:
-    # -- none, nano, micro, small, medium, large, xlarge, 2xlarge). This is ignored
-    # -- if primary.resources is set (primary.resources is recommended for production).
-    # -- see https://github.com/bitnami/charts/blob/973a2792e0bc5967e3180c6d44eebf223b9f1d83/bitnami/common/templates/_resources.tpl#L15-L43
-    resourcesPreset: small
-    # -- Set container requests and limits for different resources like CPU or memory
-    # -- (essential for production workloads)
-    resources: {}
-    persistence:
-      enabled: true
-      size: 1Gi
+# -- Crunchy Postgres Operator (PGO) PostgresCluster configuration.
+# -- NOTE: PGO must be installed on the cluster. It tends to be available
+#          in OpenShift environments.
+# -- Ref: https://access.crunchydata.com/documentation/postgres-operator/5.3/references/crd/6.0.x/postgrescluster-v1
+crunchyPgo:
+  # -- Create a PostgresCluster using PGO.
+  enabled: false
+  spec:
+    postgresVersion: 18
+    users:
+      - name: chris
+        databases: [ chris ]
+    # -- Specifies one or more sets of PostgreSQL pods that replicate data for this cluster.
+    # -- Ref: https://access.crunchydata.com/documentation/postgres-operator/5.3/references/crd/6.0.x/postgrescluster-v1#postgresclusterspecinstancesindex
+    instances:
+      - name: instance1
+        replicas: 1
+        resources:
+          requests:
+            cpu: 1
+            memory: 4Gi
+          limits:
+            cpu: 1
+            memory: 4Gi
+        dataVolumeClaimSpec:
+          accessModes: [ ReadWriteOncePod ]
+          resources:
+            requests:
+              storage: 8Gi
+          # storageClassName: ""
 
-  # Defer control of security configurations to OpenShift
-  volumePermissions:
+    # -- PostgreSQL backup configuration.
+    # -- Ref: https://access.crunchydata.com/documentation/postgres-operator/5.3/references/crd/6.0.x/postgrescluster-v1#postgresclusterspecbackups
+    backups: {}
+
+# -- [SUBCHART] DragonflyDB, a replacement for Redis.
+# -- May be used as Celery's broker.
+# -- Ref: https://github.com/dragonflydb/dragonfly/tree/main/contrib/charts/dragonfly#values
+dragonfly:
+  # -- Enable DragonflyDB and configure it as Celery's broker.
+  enabled: false
+  # -- Database number for ChRIS to use.
+  databasePath: "/0"
+  resources:
+    # -- The requested resources for the containers
+    requests:
+      cpu: 250m
+      memory: 2Gi
+    # -- The resource limits for the containers
+    limits:
+      cpu: 250m
+      memory: 2Gi
+  storage:
+    # -- If /data should persist. This will provision a StatefulSet instead.
     enabled: false
-  shmVolume:
-    enabled: false
-
-  # -- Create secret for service binding (Experimental)
-  # -- Ref: https://servicebinding.io/service-provider/
-  serviceBindings:
-    enabled: true  # required
-
-  # -- Add labels to all the deployed resources
-  commonLabels:
-    app.kubernetes.io/part-of: chris
-
-# -- [SUBCHART] RabbitMQ packaged by Bitnami
-# -- https://github.com/bitnami/charts/tree/main/bitnami/rabbitmq#parameters
-rabbitmq:
-  persistence:
-    # -- Enable RabbitMQ data persistence using PVC
-    enabled: true
-    # -- PVC Storage Request for RabbitMQ data volume
-    size: 1Gi
-
-  # -- Create secret for service binding (Experimental)
-  # -- Ref: https://servicebinding.io/service-provider/
-  serviceBindings:
-    enabled: true  # required
-
-  # -- Set container resources according to one common preset
-  # -- (allowed values: none, nano, micro, small, medium, large,
-  # -- xlarge, 2xlarge). This is ignored if resources is set
-  # -- (resources is recommended for production).
-  resourcesPreset: small
-
-  # -- Set container requests and limits for different resources
-  # -- like CPU or memory (essential for production workloads)
-  resources: {}
-
-  # -- Labels to add to all deployed objects
-  commonLabels:
-    app.kubernetes.io/part-of: chris
-
-# -- Configuration of NATS, a messaging system. In ChRIS, NATS is used for PACS retrieve
-# -- progress messages sent from oxidicom to CUBE.
-# -- Documentation: https://github.com/bitnami/charts/tree/nats/8.4.3/bitnami/nats
-nats:
-  # -- Set container resources according to one common preset (allowed values: none,
-  # -- nano, micro, small, medium, large, xlarge, 2xlarge). This is ignored if
-  # -- resources is set (resources is recommended for production).
-  resourcesPreset: small
-  # -- Add labels to all the deployed resources
-  commonLabels:
-    app.kubernetes.io/part-of: chris
-  auth:
-    # -- CUBE does not support NATS authorization
-    enabled: false
+    # -- Volume size to request for the PVC
+    requests:
+    # -- Global StorageClass for Persistent Volume(s)
+    storageClassName: ""
 
 # -- Configuration of pfcon, the ChRIS compute controller
 pfcon:
   enabled: true
 
-  name: "innetwork"
-  description: "Kubernetes cluster compute resource"
   replicaCount: 1
   podAnnotations: {}
   podSecurityContext: {}
@@ -337,49 +409,32 @@ pfcon:
   storage:
     existingClaim: ""
     size: 8Gi
-    accessModes: [ "ReadWriteOnce" ]
+    # -- NOTE: use ReadWriteMany if possible. Otherwise, you may need to
+    # -- set `cube.enablePodAffinityWorkaround=true`
+    accessModes: [ "ReadWriteMany" ]
     storageClass:
 
-  pfcon:
-    resources:
-      limits:
-        cpu: 500m
-        memory: 1Gi
-      requests:
-        cpu: 500m
-        memory: 512Mi
+  resources:
+    limits:
+      cpu: 500m
+      memory: 1Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
 
-    # -- pfcon configuration
-    # -- Recommended to keep as-is
-    config:
-      innetwork: true
-      storageEnv: fslink
+  # -- pfcon configuration
+  # -- Recommended to keep as-is
+  config:
+    innetwork: true
+    storageEnv: fslink
 
-    # -- Extra environment variables.
-    extraEnv:
-      GUNICORN_CMD_ARGS: "--workers=4 --timeout=3600"
-
-  pman:
-    # -- It is unnecessary to increase pman's resources to above the minimum because
-    # -- pman doesn't do anything besides sending and receiving HTTP requests.
-    resources:
-      limits:
-        cpu: 500m
-        memory: 1Gi
-      requests:
-        cpu: 500m
-        memory: 512Mi
-
-    # -- pman configuration
-    # -- https://github.com/FNNDSC/pman#environment-variables
-    # -- N.B.: SECRET_KEY, CONTAINER_ENV, STORAGE_TYPE, VOLUME_NAME, and CONTAINER_USER
-    # -- are handled automatically, and should not be manually set.
-    extraEnv:
-      JOB_LABELS: chrisproject.org/job=plugininstance
-      ENABLE_HOME_WORKAROUND: "yes"
-      REMOVE_JOBS: "yes"
-      IGNORE_LIMITS: "no"
-      GUNICORN_CMD_ARGS: "--workers=4 --timeout=30"
+  # -- Extra environment variables.
+  extraEnv:
+    GUNICORN_CMD_ARGS: "--workers=4 --timeout=300"
+    JOB_LABELS: chrisproject.org/job=plugininstance
+    ENABLE_HOME_WORKAROUND: "yes"
+    REMOVE_JOBS: "yes"
+    IGNORE_LIMITS: "no"
 
     # -- Set securityContext of containers created by pman to have the same securityContext as .global.podSecurityContext
     # -- or the default fnndsc/cube container user, so that the container user can write to the shared volume's filesystem.

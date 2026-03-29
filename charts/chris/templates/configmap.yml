@@ -1,0 +1,74 @@
+{{- /* ---------- ---------- ---------- Validation ---------- ---------- ---------- */ -}}
+
+{{- $hardcodedConfig := dict
+  "DJANGO_SETTINGS_MODULE" "config.settings.production"
+  "STORAGE_ENV" "fslink"
+  "MEDIA_ROOT" "/data" -}}
+
+{{- range $unchangeableKey := keys $hardcodedConfig -}}
+  {{- if (hasKey $.Values.cube.secrets $unchangeableKey) -}}
+    {{- printf "cube.secrets.%s must not be set." $unchangeableKey | fail -}}
+  {{- else if (hasKey $.Values.cube.config $unchangeableKey) -}}
+    {{- printf "cube.config.%s must not be set." $unchangeableKey | fail -}}
+  {{- end -}}
+{{- end -}}
+
+{{- $sensitiveKeys := list "DJANGO_SECRET_KEY" "AUTH_LDAP_BIND_PASSWORD" "CHRIS_SUPERUSER_PASSWORD" -}}
+{{- range $sensitiveKey := $sensitiveKeys -}}
+  {{- if (hasKey $.Values.cube.config $sensitiveKey) -}}
+    {{- fail ($.Values.cube.config | toYaml) -}}
+    {{- printf "Do not set cube.config.%s. Use cube.secrets.%s instead." $sensitiveKey $sensitiveKey | fail -}}
+  {{- end -}}
+{{- end -}}
+
+{{- if .Values.dragonfly.tls.enabled -}}
+  {{- fail "Dragonfly with TLS is not supported." -}}
+{{- end -}}
+
+{{- if .Values.dragonfly.passwordFromSecret.enable -}}
+  {{- fail "DragonflyDB with password is not supported." -}}
+{{- end -}}
+
+{{- /* ---------- ---------- ---------- Mutations ---------- ---------- ---------- */ -}}
+
+{{- $allKeys := concat (keys .Values.cube.config) (keys .Values.cube.secrets) -}}
+{{- if (not (has "PFDCM_ADDRESS" $allKeys)) -}}
+  {{- $pfdcmConfig := dict "PFDCM_ADDRESS" (include "chris.pfdcmInternalAddress" .) -}}
+  {{- $_ := mustMergeOverwrite .Values.cube.config $pfdcmConfig -}}
+{{- end -}}
+
+{{- if (not (has "NATS_ADDRESS" $allKeys)) -}}
+  {{- $natsConfig := dict "NATS_ADDRESS" (include "chris.nats.address" .) -}}
+  {{- $_ := mustMergeOverwrite .Values.cube.config $natsConfig -}}
+{{- end -}}
+
+{{- if .Values.dragonfly.enabled -}}
+  {{- $dragonflyConfig := dict "CELERY_BROKER_URL" (printf "redis://%s:%s%s"
+    (include "dragonfly.fullname" .Subcharts.dragonfly)
+    (toString .Values.dragonfly.service.port)
+    (toString .Values.dragonfly.databasePath)) }}
+  {{- $_ := mustMerge .Values.cube.config $dragonflyConfig -}}
+{{- end -}}
+
+{{- $_ := mustMergeOverwrite .Values.cube.config $hardcodedConfig -}}
+
+{{- /* Convert all values to string */ -}}
+{{- range $k, $v := .Values.cube.config -}}
+  {{- if (not (typeIs $v "string")) -}}
+    {{- $_ := mustMergeOverwrite (dict $k (toString $v)) -}}
+  {{- end -}}
+{{- end -}}
+
+{{- /* ---------- ---------- ---------- Template ---------- ---------- ---------- */ -}}
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "chris.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "cube.labels" . | nindent 4 }}
+  annotations:
+    kubernetes.io/description: "Configuration of ChRIS backend"
+data:
+  {{- .Values.cube.config | toYaml | nindent 2 }}

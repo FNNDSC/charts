@@ -3,9 +3,9 @@ release:
   name: tpaddy
   namespace: ns
 templates:
-  - cube-config.yml
+  - configmap.yml
 tests:
-  - it: should be a dummy value (http://localhost) if pfdcm is not enabled
+  - it: should be a dummy value if pfdcm is not enabled
     set:
       pfdcm.enabled: false
     documentSelector:
@@ -14,7 +14,7 @@ tests:
     asserts:
       - equal:
           path: data.PFDCM_ADDRESS
-          value: http://localhost
+          value: http://this.is.a.placeholder
   - it: should be pfdcm's service
     set:
       pfdcm.enabled: true
@@ -58,20 +58,3 @@ tests:
       - equal:
           path: data.PFDCM_ADDRESS
           value: http://manual.value
-  - it: should be able to set a custom value using cube.secrets
-    set:
-      pfdcm.enabled: true
-      cube.secrets.PFDCM_ADDRESS: http://manual.value
-    asserts:
-      - notExists:
-          path: data.PFDCM_ADDRESS
-        documentSelector:
-          path: kind
-          value: ConfigMap
-      - equal:
-          path: data.PFDCM_ADDRESS
-          value: http://manual.value
-          decodeBase64: true
-        documentSelector:
-          path: kind
-          value: Secret

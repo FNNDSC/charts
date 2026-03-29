@@ -1,0 +1,99 @@
+{{- if .Values.chrisomatic.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-chrisomatic-{{ .Release.Revision }}
+  namespace: {{ .Release.Namespace }}
+  labels: &LABELS
+    app.kubernetes.io/name: chrisomatic
+    app.kubernetes.io/component: initialization
+    {{- include "chris.labels" . | nindent 4 }}
+spec:
+  template:
+    metadata:
+      labels: *LABELS
+      annotations:
+        kubectl.kubernetes.io/default-container: chrisomatic
+    spec:
+      containers:
+        - name: chrisomatic
+          image: {{ .Values.chrisomatic.job.image }}
+          {{- /* NOTE: chrisomatic cannot read secret values from environment variables,
+               *       so we use bash to pipe a chrisomatic.yml configuration via stdin.
+               * WARNING: we assume that CHRIS_SUPERUSER_PASSWORD, and PFCON_PASSWORD
+               *          are alphanumeric and do not contain characters which screw
+               *          with YAML string quoting. */}}
+          command:
+            - sh
+            - -c
+            - |
+              chrisomatic - << EOF
+              {{- if .Values.chrisomatic.config.on }}
+                {{- fail "chrisomatic.config.on must not be set." }}
+              {{- end }}
+              on:
+                cube_url: http://{{ include "chris.fullname" . }}:{{ .Values.cube.server.service.port }}/api/v1/
+                chris_superuser:
+                  username: chris
+                  password: '$CHRIS_SUPERUSER_PASSWORD'
+                public_store:
+                  - '$CHRIS_STORE_URL'
+              {{- if .Values.pfcon.enabled }}
+                {{- $computeResources := .Values.chrisomatic.config.cube.compute_resource | default (list) }}
+                {{- $_ := .Values.chrisomatic.subchartPfconConfig
+                    | mustMergeOverwrite (dict
+                        "url" (printf "http://%s.%s.svc:%v/api/v1/"
+                                      (include "pfcon.fullname" .Subcharts.pfcon)
+                                      (.Release.Namespace)
+                                      (.Values.pfcon.service.port))
+                        "username"  "$PFCON_USER"
+                        "password"  "$PFCON_PASSWORD"
+                        "innetwork" .Values.pfcon.config.innetwork)
+                    | mustPrepend $computeResources
+                    | set .Values.chrisomatic.config.cube "compute_resource"
+                }}
+              {{- end }}
+              {{- with omit .Values.chrisomatic.config "on" }}
+                {{- /*
+                     * WARNING: implicit YAML string quoting. Below the `toYaml`
+                     *          function will surround the strings like "$PFCON_USER"
+                     *          with quotes for us. Then at runtime, `sh` substitues
+                     * in the real value. */}}
+                {{- toYaml . | nindent 14 }}
+              {{- end }}
+              EOF
+          env:
+            - name: CHRIS_SUPERUSER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "chris.fullname" . }}
+                  key: CHRIS_SUPERUSER_PASSWORD
+            - name: CHRIS_STORE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "chris.fullname" . }}
+                  key: CHRIS_STORE_URL
+            - name: PFCON_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "pfcon.fullname" .Subcharts.pfcon }}
+                  key: PFCON_USER
+            - name: PFCON_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "pfcon.fullname" .Subcharts.pfcon }}
+                  key: PFCON_PASSWORD
+            - name: PFCON_INNETWORK
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "pfcon.fullname" .Subcharts.pfcon }}
+                  key: PFCON_INNETWORK
+          {{- with .Values.chrisomatic.job.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      restartPolicy: Never
+  {{- with omit .Values.chrisomatic.job "image" "resources" }}
+  {{- toYaml . | nindent 2 }}
+  {{- end }}
+{{- end }}

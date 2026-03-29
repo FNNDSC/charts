@@ -1,20 +1,51 @@
-{{- $kubectl := ternary "oc" "kubectl" (.Capabilities.APIVersions.Has "security.openshift.io/v1/SecurityContextConstraints") -}}
+ChRIS Research Integration Service
+
+      sSSs   .S    S.    .S_sSSs     .S    sSSs
+     d%%SP  .SS    SS.  .SS~YS%%b   .SS   d%%SP
+    d%S'    S%S    S%S  S%S   `S%b  S%S  d%S'
+    S%S     S%S    S%S  S%S    S%S  S%S  S%|
+    S&S     S%S SSSS%S  S%S    d* S  S&S  S&S
+    S&S     S&S  SSS&S  S&S   .S* S  S&S  Y&Ss
+    S&S     S&S    S&S  S&S_sdSSS   S&S  `S&&S
+    S&S     S&S    S&S  S&S~YSY%b   S&S    `S*S
+    S*b     S*S    S*S  S*S   `S%b  S*S     l*S
+    S*S.    S*S    S*S  S*S    S%S  S*S    .S*P
+     SSSbs  S*S    S*S  S*S    S&S  S*S  sSS*S
+      YSSP  SSS    S*S  S*S    SSS  S*S  YSS'
+                   SP   SP          SP
+                   Y    Y           Y
+ 
+                 U  L  T  R  O  N
+{{ $kubectl := ternary "oc" "kubectl" (.Capabilities.APIVersions.Has "security.openshift.io/v1/SecurityContextConstraints") }}
+{{- if .Values.migrate.enabled }}
+{{- $cmd := printf "%s -n %s logs --follow job/%s" $kubectl .Release.Namespace (include "chris.migrate-job" .) }}
++----------------------------------+
+| DATABASE MIGRATIONS ARE RUNNING. |
+| You should monitor its logs:     |
++----------------------------------+--{{ repeat (int (sub (len $cmd) 36)) "-" }}--+
+|  {{ repeat (len $cmd) " "                                                    }} |
+|  {{  $cmd                                                                    }} |
+|  {{ repeat (len $cmd) " "                                                    }} |
++--{{ repeat (len $cmd) "-"                                                    }}-+
+{{- end }}
 
 The ChRIS backend is being deployed. Please wait for it to be ready.
 You can run this command to block while the server is starting up:
 
-    {{ $kubectl }} wait --for=condition=ready pod -n {{ .Release.Namespace }} -l app.kubernetes.io/instance={{ .Release.Name }} -l app.kubernetes.io/name={{ include "chris.name" . }}-server --timeout=300s
+    {{ $kubectl }} -n {{ .Release.Namespace }} rollout status deploy/{{ .Release.Name }}-server
 
 After that, try logging in as the admin user. The password can be revealed by running the command
 
-    {{ $kubectl }} get secret -n {{ .Release.Namespace }} {{ .Release.Name }}-chris-backend -o jsonpath='{.data.CHRIS_SUPERUSER_PASSWORD}' | base64 --decode
-{{ if (and .Values.cube.server.service.nodePort .Values.cube.server.service.nodePortHost) }}
+    {{ $kubectl }} -n {{ .Release.Namespace }} get secret {{ .Release.Name }} -o jsonpath='{.data.CHRIS_SUPERUSER_PASSWORD}' | base64 --decode
+
+{{ if .Values.cube.server.service.nodePort }}
+{{- $host := print $kubectl " get nodes -o jsonpath='{.items[0].status.addresses[0].address}'" }}
 Your CUBE API address is:
 
-    http://{{ .Values.cube.server.service.nodePortHost }}:{{ .Values.cube.server.service.nodePort }}/api/v1/
+    http://{{ $host }}:{{ .Values.cube.server.service.nodePort }}/api/v1/
 
 Here is a one-liner for you to check that everything is up and running:
 
-    curl -i --fail-with-body -u "chris:$(kubectl get secret -n {{ .Release.Namespace }} {{ .Release.Name }}-chris-backend -o jsonpath='{.data.CHRIS_SUPERUSER_PASSWORD}' | base64 --decode)" http://{{ .Values.cube.server.service.nodePortHost }}:{{ .Values.cube.server.service.nodePort }}/chris-admin/api/v1/
+    curl -i --fail-with-body -u "chris:$(kubectl get secret -n {{ $host }}:{{ .Values.cube.server.service.nodePort }}/chris-admin/api/v1/
 
 {{ end }}

@@ -1,0 +1,75 @@
+{{- if .Values.migrate.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "chris.migrate-job" . }}
+  namespace: {{ .Release.Namespace }}
+  labels: &LABELS
+    app.kubernetes.io/name: {{ include "chris.name" . }}-migrate
+    app.kubernetes.io/component: initialization
+    {{- include "chris.labels" . | nindent 4 }}
+spec:
+  template:
+    metadata:
+      labels: *LABELS
+      annotations:
+        kubectl.kubernetes.io/default-container: migrate
+    spec:
+      initContainers:
+        {{- include "chris.initContainers.wait-db" . | nindent 8 }}
+      containers:
+        - name: migrate
+          command: {{- .Values.migrate.job.command | toJson | nindent 12 }}
+          {{- include "chris.imageEnvAndMounts" . | nindent 10 }}
+          {{- with .Values.migrate.job.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      restartPolicy: Never
+      {{- include "cube.podSpec" . | nindent 6 }}
+  {{- with omit .Values.migrate.job "image" "resources" }}
+  {{- toYaml . | nindent 2 }}
+  {{- end }}
+---
+{{- /* When migrate.enabled=true, we want to make sure that CUBE pods start
+     * after the migration job is completed. In order for them to watch for
+     * the job's completion, we need to define a Role + RoleBinding.
+     */}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "chris.migrate-observer" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: {{ include "chris.migrate-observer" . }}
+    {{- include "cube.labels" . | nindent 4 }}
+  {{- with .Values.migrate.observer.role.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+rules:
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "chris.migrate-observer" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: {{ include "chris.migrate-observer" . }}
+    {{- include "cube.labels" . | nindent 4 }}
+  {{- with .Values.migrate.observer.roleBinding.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "chris.migrate-observer" . }}
+subjects:
+- kind: ServiceAccount
+  name: {{ include "chris.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+{{- end }}
