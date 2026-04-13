@@ -330,6 +330,22 @@ predefinedInitContainers:
         cpu: 100m
         memory: 64Mi
 
+test:
+  createUser:
+    usernamePrefix: helmtest-
+    emailDomain: 'example.org'
+  annotations:
+    helm.sh/hook: test
+    kubernetes.io/description: "Test the ChRIS backend by creating a test user, logging in, and uploading a file."
+  image: ghcr.io/fnndsc/python-client:0.0.3
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 100m
+    limits:
+      memory: 256Mi
+      cpu: 100m
+
 # -- Crunchy Postgres Operator (PGO) PostgresCluster configuration.
 # -- NOTE: PGO must be installed on the cluster. It tends to be available
 #          in OpenShift environments.

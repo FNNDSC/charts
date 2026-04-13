@@ -1,0 +1,114 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ .Release.Name }}-test-cube-works"
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    helm.sh/chart: {{ include "chris.chart" . }}
+  {{- with .Values.test.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  restartPolicy: Never
+  containers:
+    - name: test
+      image: {{ .Values.test.image }}
+      command:
+        - python
+        - -c
+        - |
+          import time, random, string, sys, logging, os, uuid, urllib.parse
+          from chris_oag import (
+              Configuration, ApiClient,
+              UsersApi, UserRequest,
+              UserfilesApi,
+              PluginsApi, PluginInstanceRequest,
+              PluginInstanceStatus,
+              FilebrowserApi
+          )
+
+          logging.basicConfig(level=logging.INFO)
+          config = Configuration(host='http://{{ include "chris.fullname" . }}:{{ .Values.cube.server.service.port }}')
+
+          {{- /* TODO: would it be better for us to check users_api.users_list()?
+               *       Dynamic check for whether user accounts can be created. */}}
+          {{- $createUser := eq "false" .Values.cube.config.DISABLE_USER_ACCOUNT_CREATION }}
+          {{- if $createUser }}
+          username = f'{{ .Values.test.createUser.usernamePrefix }}{int(time.time())}'
+          password = ''.join(random.choices(string.ascii_uppercase + string.ascii_lowercase + string.digits, k=12))
+          user_request = UserRequest(
+              username=username,
+              email=f'{username}@{{ .Values.test.createUser.emailDomain }}',
+              password=password
+          )
+          with ApiClient(config) as client:
+              res = UsersApi(client).users_create(user_request)
+              logging.info('Created user: %s', repr(res))
+
+          config.username = username
+          config.password = password
+          {{- else }}
+          config.username = 'chris'
+          config.password = os.getenv('CHRIS_SUPERUSER_PASSWORD')
+          {{- end }}
+
+          client = ApiClient(config)
+
+          upload_dir = f'home/{config.username}/uploads/helmtest-{int(time.time())}'
+          file_name = 'file.dat'
+          file_data = f'on the next line is some random data.\n{uuid.uuid4()}'.encode('utf-8')
+          userfiles_api = UserfilesApi(client)
+          userfile = userfiles_api.userfiles_create(
+              upload_path=f'{upload_dir}/{file_name}',
+              fname=file_data,
+              public=False
+          )
+          logging.info('Uploaded file id=%d', userfile.id)
+
+          # https://github.com/FNNDSC/openapi-clients/issues/1
+          userfile_request = client.call_api('GET', userfile.file_resource,
+                                                     header_params={'Authorization': config.get_basic_auth_token()})
+          userfile_request.read()
+          userfile_data = client.response_deserialize(
+              response_data=userfile_request,
+              response_types_map={'200': 'bytes'}
+          ).data
+          assert file_data == userfile_data, "Downloaded file is different from what was uploaded."
+
+          plugins_api = PluginsApi(client)
+          search = plugins_api.plugins_search_list(name_exact='pl-dircopy')
+          assert len(search.results), 'Plugin pl-dircopy not found'
+          dircopy = search.results[0]
+
+          dircopy_params = PluginInstanceRequest(
+              cpu_limit=100,
+              memory_limit=200,
+              additional_properties={
+                  'dir': upload_dir
+              }
+          )
+          created_plinst = plugins_api.plugins_instances_create(dircopy.id, dircopy_params)
+          logging.info('Created plugin_instance=%d feed=%d', created_plinst.id, created_plinst.feed_id)
+
+          while (plinst := plugins_api.plugins_instances_retrieve(created_plinst.id)).active:
+              logging.info('Polled status: %s', plinst.status.value)
+              time.sleep(1)
+
+          logging.info('Final status: %s', plinst.status.value)
+          assert plinst.status == PluginInstanceStatus.FINISHEDSUCCESSFULLY
+
+          logging.debug('Output folder URI: %s', plinst.output_folder)
+          folder_id = int(plinst.output_folder.split('/api/v1/filebrowser/')[-1].rstrip('/'))
+          logging.debug('Output folder ID=%d', folder_id)
+
+          filebrowser_api = FilebrowserApi(client)
+          files = filebrowser_api.filebrowser_linkfiles_list(folder_id)
+          assert files.count > 0, "pl-dircopy did not create linkfile(s)"
+      {{- with .Values.test.resources }}
+      resources:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
